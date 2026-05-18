@@ -32,7 +32,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="10,0">
     <item>
-     <widget class="QLabel" name="camera_view">
+     <widget class="QLabel" name="video_label">
       <property name="text">
        <string>Initializing camera...</string>
       </property>
