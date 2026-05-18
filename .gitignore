@@ -1,0 +1,12 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+src/smile/ui/generated/ui_main_window.py
+src/smile/ui/generated/resources_rc.py

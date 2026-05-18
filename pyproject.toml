@@ -1,0 +1,33 @@
+[project]
+name = "smile"
+version = "0.1.0"
+description = "Smile detect project"
+readme = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    "pyside6>=6.11.1",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.1.0",
+    "ruff>=0.15.13",
+]
+
+[project.scripts]
+smile = "smile.main:main"
+
+[tool.uv]
+package = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = [
+    "src/smile/ui/generated",
+]
+
+[tool.ruff.lint]
+select = [ "E", "F", "I", "B", "UP", "SIM" ]
+ignore = ["E501"]
