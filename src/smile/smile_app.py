@@ -1,6 +1,6 @@
 import logging
 
-from PySide6.QtCore import QThread
+from PySide6.QtCore import QThread, Signal, Slot
 from PySide6.QtWidgets import QApplication
 
 from smile.camera.camera_worker import CameraWorker
@@ -11,10 +11,13 @@ logger = logging.getLogger(__name__)
 
 
 class SmileApp(QApplication):
+    stop_camera = Signal()
+    stop_recognition = Signal()
+
     def __init__(self, args: list[str]):
         super().__init__(args)
 
-        logger.info("Smile application start")
+        logger.info("Application creating")
 
         self.camera_worker = CameraWorker()
         self.camera_thread = QThread()
@@ -26,26 +29,37 @@ class SmileApp(QApplication):
 
         self.window = MainWindow()
 
-        self.camera_worker.frame_ready.connect(self.recognition_worker.process_frame)
         self.camera_thread.started.connect(self.camera_worker.start)
-        self.recognition_worker.qimage_ready.connect(self.window.update_pixmap)
+        self.camera_worker.frame_ready.connect(self.recognition_worker.process_frame)
+        self.stop_camera.connect(self.camera_worker.stop)
+
         self.recognition_thread.started.connect(self.recognition_worker.start)
+        self.recognition_worker.qimage_ready.connect(self.window.update_qimage)
+        self.stop_recognition.connect(self.recognition_worker.stop)
+
+        self.camera_thread.finished.connect(self.camera_worker.deleteLater)
+        self.recognition_thread.finished.connect(self.recognition_worker.deleteLater)
+
+        self.aboutToQuit.connect(self.shutdown)
 
         self.window.show()
 
         self.recognition_thread.start()
         self.camera_thread.start()
 
-        logger.info("Smile application already started")
+        logger.info("Application created")
 
+    @Slot()
     def shutdown(self) -> None:
-        logger.info("Application shutdown")
+        logger.info("Application shutdown started")
 
-        self.camera_worker.stop()
-        self.recognition_worker.stop()
+        self.stop_camera.emit()
+        self.stop_recognition.emit()
 
         self.camera_thread.quit()
         self.recognition_thread.quit()
 
         self.camera_thread.wait()
         self.recognition_thread.wait()
+
+        logger.info("Application shutdown completed")

@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 class RecognitionWorker(QObject):
     qimage_ready = Signal(QImage)
     error = Signal(str)
+    # finished = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -24,6 +25,9 @@ class RecognitionWorker(QObject):
             rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
             height, width, channels = rgb.shape
+
+            # logger.info(f"Frame {frame.frame_id} {width} x {height} x {channels}")
+
             bytes_per_line = channels * width
 
             qimage = QImage(
@@ -32,19 +36,18 @@ class RecognitionWorker(QObject):
                 height,
                 bytes_per_line,
                 QImage.Format.Format_RGB888,
-            ).copy()
+            )
 
             self.qimage_ready.emit(qimage)
 
         except Exception:
-            logger.exception("Recognition worker failed")
-
-            self.error.emit("Recognition worker failed")
+            logger.exception("Fail")
 
     @Slot()
     def stop(self) -> None:
-        logger.info("Stopping recognition worker")
+        # self.finished.emit()
+        logger.info("Stopped")
 
     @Slot()
     def start(self) -> None:
-        logger.info("Starting recognition worker")
+        logger.info("Started")

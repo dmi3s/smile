@@ -1,10 +1,8 @@
 import logging
-
-# from asyncio import SendfileNotAvailableError
 import time
 
 import cv2
-from PySide6.QtCore import QObject, Signal, Slot
+from PySide6.QtCore import QObject, QTimer, Signal, Slot
 
 from smile.camera.frame import Frame
 
@@ -13,59 +11,58 @@ logger = logging.getLogger(__name__)
 
 class CameraWorker(QObject):
     frame_ready = Signal(Frame)
-    finished = Signal()
+    # finished = Signal()
     error = Signal(str)
     camera_started = Signal()
+    stop_camera = Signal()
     # ToDo:
     fps_updated = Signal()
     camera_disconnected = Signal()
 
     def __init__(self):
         super().__init__()
-        logger.info("Camera worker created")
-        self._running = False
-        self._frame_id = 0
+        logger.info("Created")
 
     @Slot()
     def start(self) -> None:
         logger.info("Started")
 
-        cap = cv2.VideoCapture(0)
+        self._cap = cv2.VideoCapture(0)
 
-        if not cap.isOpened():
+        if not self._cap.isOpened():
             logger.error("Cannot open camera")
             self.error.emit("Cannot open camera")
-            self.finished.emit()
             return
 
-        try:
-            self._running = True
-            self.camera_started.emit()
+        self.camera_started.emit()
+        self._frame_id = 0
 
-            while self._running:
-                ret, frame = cap.read()
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._capture_frame)
+        self._timer.start(33)  # about 30 fps
 
-                if not ret:
-                    logger.error("Failed tor read frame")
-                    self.error.emit("Failed to read frame")
-                    break
+    @Slot()
+    def _capture_frame(self) -> None:
+        ret, frame = self._cap.read()
+        if not ret:
+            logger.error("Failed to read frame")
+            return
 
-                vframe = Frame.from_copy(frame, self._frame_id, 0.0)
-                self._frame_id += 1
-
-                self.frame_ready.emit(vframe)
-
-                time.sleep(0.03)
-
-        except Exception:
-            logger.exception("Open CV exception occured")
-        finally:
-            cap.release()
-            logger.info("Camera worker stopped")
-            self.finished.emit()
+        vframe = Frame.from_copy(frame, self._frame_id, 0.0)
+        self._frame_id += 1
+        self.frame_ready.emit(vframe)
 
     @Slot()
     def stop(self) -> None:
-        logger.info("Stopping Camera worker")
+        logger.info("Stopping")
 
-        self._running = False
+        if self._timer is not None:
+            self._timer.stop()
+            self._timer.deleteLater()
+            self._timer = None
+
+        if self._cap is not None:
+            self._cap.release()
+            self._cap = None
+
+        logger.info("Stopped")

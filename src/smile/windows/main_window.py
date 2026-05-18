@@ -12,6 +12,6 @@ class MainWindow(QMainWindow):
         self.ui.setupUi(self)
 
     @Slot(QImage)
-    def update_pixmap(self, qimage: QImage) -> None:
+    def update_qimage(self, qimage: QImage) -> None:
         pixmap = QPixmap.fromImage(qimage)
         self.ui.video_label.setPixmap(pixmap)
