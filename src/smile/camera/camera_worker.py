@@ -1,8 +1,8 @@
 import logging
+import time
 
 import cv2
-
-# import numpy as np
+import numpy as np
 from PySide6.QtCore import QObject, QTimer, Signal, Slot
 
 from smile.camera.frame import Frame
@@ -12,19 +12,19 @@ logger = logging.getLogger(__name__)
 
 class CameraWorker(QObject):
     frame_ready = Signal(Frame)
-    # finished = Signal()
     error = Signal(str)
     camera_started = Signal()
-    stop_camera = Signal()
     # ToDo:
-    fps_updated = Signal()
-    camera_disconnected = Signal()
+    # stop_camera = Signal()
+    # fps_updated = Signal()
+    # camera_disconnected = Signal()
 
     def __init__(self):
         super().__init__()
         self._frame_id = 0
         self._timer = None
         self._cap = None
+        self._stopping = False
         logger.info("Created")
 
     @Slot()
@@ -46,29 +46,37 @@ class CameraWorker(QObject):
 
     @Slot()
     def _capture_frame(self) -> None:
-        ret, frame = self._cap.read()
-        if not ret:
-            logger.error("Failed to read frame")
+        if self._stopping:
             return
 
-        rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        ret, bgr_frame = self._cap.read()
 
-        vframe = Frame.from_shared(rgb_image, self._frame_id, 0.0)
+        if not ret:
+            logger.warning("Failed to read frame")
+            return
+        timestamp_ns = time.monotonic_ns()
+        # rgb_image = cast(
+        #     NDArray,
+        #     cv2.cvtColor(bgr_frame, cv2.COLOR_BGR2RGB)
+        # )
+        rgb_image = np.ascontiguousarray(bgr_frame[:, :, ::-1])
+
+        frame = Frame.from_owned(rgb_image, self._frame_id, timestamp_ns)
 
         self._frame_id += 1
-        self.frame_ready.emit(vframe)
+        self.frame_ready.emit(frame)
 
     @Slot()
     def stop(self) -> None:
-        logger.info("Stopping")
+        logger.debug("Stopping")
+        self._stopping = True
 
         if self._timer is not None:
             self._timer.stop()
-            self._timer.deleteLater()
             self._timer = None
 
         if self._cap is not None:
             self._cap.release()
             self._cap = None
 
-        logger.info("Stopped")
+        logger.debug("Stopped")

@@ -27,3 +27,8 @@ generate: gen-ui gen-resources
 
 run:
     uv run smile
+
+clean:
+    rm *.log
+    uv clean
+#    uv venv --clear

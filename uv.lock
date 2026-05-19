@@ -832,6 +832,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "mediapipe" },
+    { name = "numpy" },
     { name = "opencv-python" },
     { name = "pyside6" },
 ]
@@ -845,6 +846,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "mediapipe", specifier = ">=0.10.35" },
+    { name = "numpy", specifier = ">=2.4.5" },
     { name = "opencv-python", specifier = ">=4.13.0.92" },
     { name = "pyside6", specifier = ">=6.11.1" },
 ]

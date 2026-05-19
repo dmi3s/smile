@@ -3,6 +3,7 @@ from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QMainWindow
 
 from smile.camera.frame import Frame
+from smile.recognition.face_detection import RecognitionResult
 from smile.ui.generated.ui_main_window import Ui_MainWindow
 
 
@@ -29,3 +30,10 @@ class MainWindow(QMainWindow):
 
         pixmap = QPixmap.fromImage(qimage)
         self.ui.video_label.setPixmap(pixmap)
+
+    @Slot(RecognitionResult)
+    def update_detection(self, detection_result: RecognitionResult) -> None:
+        if len(detection_result.result.detections) > 0:
+            self.ui.smile_label.setText("🙂")
+        else:
+            self.ui.smile_label.setText("👾")
