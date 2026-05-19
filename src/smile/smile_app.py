@@ -34,7 +34,7 @@ class SmileApp(QApplication):
         self.stop_camera.connect(self.camera_worker.stop)
 
         self.recognition_thread.started.connect(self.recognition_worker.start)
-        self.recognition_worker.qimage_ready.connect(self.window.update_qimage)
+        self.recognition_worker.frame_ready.connect(self.window.update_frame)
         self.stop_recognition.connect(self.recognition_worker.stop)
 
         self.camera_thread.finished.connect(self.camera_worker.deleteLater)

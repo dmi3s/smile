@@ -1,7 +1,8 @@
 import logging
-import time
 
 import cv2
+
+# import numpy as np
 from PySide6.QtCore import QObject, QTimer, Signal, Slot
 
 from smile.camera.frame import Frame
@@ -21,6 +22,9 @@ class CameraWorker(QObject):
 
     def __init__(self):
         super().__init__()
+        self._frame_id = 0
+        self._timer = None
+        self._cap = None
         logger.info("Created")
 
     @Slot()
@@ -35,7 +39,6 @@ class CameraWorker(QObject):
             return
 
         self.camera_started.emit()
-        self._frame_id = 0
 
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._capture_frame)
@@ -48,7 +51,10 @@ class CameraWorker(QObject):
             logger.error("Failed to read frame")
             return
 
-        vframe = Frame.from_copy(frame, self._frame_id, 0.0)
+        rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        vframe = Frame.from_shared(rgb_image, self._frame_id, 0.0)
+
         self._frame_id += 1
         self.frame_ready.emit(vframe)
 

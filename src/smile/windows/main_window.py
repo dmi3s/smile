@@ -2,6 +2,7 @@ from PySide6.QtCore import Slot
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QMainWindow
 
+from smile.camera.frame import Frame
 from smile.ui.generated.ui_main_window import Ui_MainWindow
 
 
@@ -11,7 +12,20 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-    @Slot(QImage)
-    def update_qimage(self, qimage: QImage) -> None:
+    @Slot(Frame)
+    def update_frame(self, frame: Frame) -> None:
+        image = frame.image
+        height, width, channels = image.shape
+        # logger.info(f"Frame {frame.frame_id} {width} x {height} x {channels}")
+        bytes_per_line = channels * width
+
+        qimage = QImage(
+            image.data,
+            width,
+            height,
+            bytes_per_line,
+            QImage.Format.Format_RGB888,
+        )
+
         pixmap = QPixmap.fromImage(qimage)
         self.ui.video_label.setPixmap(pixmap)
