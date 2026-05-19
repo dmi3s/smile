@@ -1,15 +1,17 @@
 import logging
 from pathlib import Path
 
+import PySide6
 import cv2
 import mediapipe as mp
 import numpy as np
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-from PySide6.QtCore import QObject, QTimer, Signal, Slot
+from PySide6.QtCore import QObject, QTimer, Signal, Slot, QMetaObject, Qt
+from mediapipe.tasks.python.components.containers.detections import DetectionResult
 
 from smile.camera.frame import Frame
-from smile.recognition.face_detection import RecognitionResult
+from smile.recognition.face_detection import DetectedFaceBox, FaceBox, RecognitionResult
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +48,39 @@ class RecognitionWorker(QObject):
             self._busy = True
             QTimer.singleShot(0, self._process_next)
 
+    @staticmethod
+    def _construct_recognition_result(
+        detection_result: DetectionResult,
+        x_scale: float,
+        y_scale: float,
+        frame_id : int,
+        timestamp_ns : int
+    ) -> RecognitionResult:
+
+        faces: list[DetectedFaceBox] = []
+        for detection in detection_result.detections:
+            assert detection.categories[0].score is not None
+            faces.append(
+                DetectedFaceBox(
+                    bbox=FaceBox(
+                        detection.bounding_box.origin_x * x_scale,
+                        detection.bounding_box.origin_y * y_scale,
+                        detection.bounding_box.width * x_scale,
+                        detection.bounding_box.height * y_scale,
+                    ),
+                    score=detection.categories[0].score
+                    if detection.categories[0].score is not None
+                    else 0.0,
+                )
+            )
+
+        return RecognitionResult(
+            faces=faces,
+            frame_id=frame_id,
+            timestamp_ns=timestamp_ns
+        )
+
+    @Slot()
     def _process_next(self):
         if self._stopping:
             self._busy = False
@@ -79,12 +114,12 @@ class RecognitionWorker(QObject):
                 frame.timestamp_ns // 1_000_000
             )
 
-            logger.debug(f"Face(s): {len(result.detections)}")
-
-            rr = RecognitionResult(
-                result=result,
-                frame_id=frame.frame_id,
-                timestamp_ns=frame.timestamp_ns
+            rr = RecognitionWorker._construct_recognition_result(
+                result,
+                1.0 / image.width,
+                1.0 / image.height,
+                frame.frame_id,
+                frame.timestamp_ns
             )
 
             self.recognition_ready.emit(rr)

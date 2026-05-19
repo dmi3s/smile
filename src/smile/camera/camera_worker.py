@@ -29,8 +29,7 @@ class CameraWorker(QObject):
 
     @Slot()
     def start(self) -> None:
-        logger.info("Started")
-
+        logger.info("Starting")
         self._cap = cv2.VideoCapture(0)
 
         if not self._cap.isOpened():
@@ -43,6 +42,8 @@ class CameraWorker(QObject):
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._capture_frame)
         self._timer.start(33)  # about 30 fps
+        logger.info("Started")
+
 
     @Slot()
     def _capture_frame(self) -> None:
@@ -54,6 +55,7 @@ class CameraWorker(QObject):
         if not ret:
             logger.warning("Failed to read frame")
             return
+
         timestamp_ns = time.monotonic_ns()
         # rgb_image = cast(
         #     NDArray,
@@ -68,7 +70,7 @@ class CameraWorker(QObject):
 
     @Slot()
     def stop(self) -> None:
-        logger.debug("Stopping")
+        logger.info("Stopping")
         self._stopping = True
 
         if self._timer is not None:
@@ -79,4 +81,4 @@ class CameraWorker(QObject):
             self._cap.release()
             self._cap = None
 
-        logger.debug("Stopped")
+        logger.info("Stopped")

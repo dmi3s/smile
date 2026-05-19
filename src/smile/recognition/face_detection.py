@@ -1,11 +1,20 @@
 from dataclasses import dataclass
 
-from mediapipe.tasks.python import vision
 
+@dataclass(frozen=True)
+class FaceBox:
+    fx: float
+    fy: float
+    fw: float
+    fh: float
+
+@dataclass(frozen=True)
+class DetectedFaceBox:
+    bbox: FaceBox
+    score: float
 
 @dataclass(slots=True, frozen=True)
 class RecognitionResult:
-    # It's a compromise
-    result: vision.FaceDetectorResult
+    faces: list[DetectedFaceBox]
     timestamp_ns: int
     frame_id: int

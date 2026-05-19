@@ -41,6 +41,9 @@ class SmileApp(QApplication):
 
         self.aboutToQuit.connect(self.shutdown)
 
+        self.camera_thread.finished.connect(self.camera_worker.deleteLater)
+        self.recognition_thread.finished.connect(self.recognition_worker.deleteLater)
+
         self.window.show()
 
         self.recognition_thread.start()
