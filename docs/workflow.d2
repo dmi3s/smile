@@ -1,0 +1,24 @@
+#direction: right
+shape: sequence_diagram
+cw: Camera Worker
+rw: Recognition Worker
+gui: Main Window
+
+loop Continuous Capture \& Inference Pipeline {
+    cw -> rw: update_frame
+    rw -> rw: store_last_frame
+    rw -> rw: process_last_frame
+    cw -> gui: update_frame
+    gui -> gui: redraw
+
+    cw -> rw: update_frame
+    rw -> rw: store_last_frame
+    cw -> gui: update_frame
+    gui -> gui: redraw
+
+    cw -> rw: update_frame
+    rw -> rw: store_last_frame
+    rw -> gui: update_detection
+    gui -> gui: redraw
+    rw -> rw: process_last_frame
+}

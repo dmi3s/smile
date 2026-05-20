@@ -1,22 +1,21 @@
 import logging
 from pathlib import Path
 
-import PySide6
 import cv2
 import mediapipe as mp
 import numpy as np
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-from PySide6.QtCore import QObject, QTimer, Signal, Slot, QMetaObject, Qt
 from mediapipe.tasks.python.components.containers.detections import DetectionResult
+from PySide6.QtCore import QObject, QTimer, Signal, Slot
 
 from smile.camera.frame import Frame
-from smile.recognition.face_detection import DetectedFaceBox, FaceBox, RecognitionResult
+from smile.recognition.detectors.face_detection import DetectedFaceBox, FaceBox, RecognitionResult
 
 logger = logging.getLogger(__name__)
 
 MODEL_PATH = (
-    Path(__file__).resolve().parent / "models" / "blaze_face_short_range.tflite"
+    Path(__file__).resolve().parent.parent / "models" / "blaze_face_short_range.tflite"
 )
 
 class RecognitionWorker(QObject):
@@ -42,12 +41,17 @@ class RecognitionWorker(QObject):
         self._detector = vision.FaceDetector.create_from_options(options)
 
     @Slot(Frame)
-    def submit_frame(self, frame: Frame) -> None:
+    def update_frame(self, frame: Frame) -> None:
         self._latest_frame = frame
         if not self._busy:
             self._busy = True
             QTimer.singleShot(0, self._process_next)
 
+    # NOTE: In this version of MediaPipe Tasks API (0.10+), FaceDetector with
+    # RunningMode.VIDEO returns bounding box coordinates in absolute pixels
+    # relative to the input image dimensions (small_data), NOT normalized [0,1].
+    # Scaling factor x_scale = original_width / small_width converts to original frame coords.
+    # If behavior changes in future versions, check the heuristic in _construct_recognition_result.
     @staticmethod
     def _construct_recognition_result(
         detection_result: DetectionResult,
@@ -69,8 +73,6 @@ class RecognitionWorker(QObject):
                         detection.bounding_box.height * y_scale,
                     ),
                     score=detection.categories[0].score
-                    if detection.categories[0].score is not None
-                    else 0.0,
                 )
             )
 

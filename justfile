@@ -7,6 +7,14 @@ bootstrap: sync generate
 sync:
     uv sync
 
+# 📄 Build documentation
+docs:
+    (cd docs && just build)
+
+# 🧹 Cleanup docs
+docs-clean:
+    (cd docs && just clean)
+
 gen-ui:
     mkdir -p {{ GEN_DIR }}
 

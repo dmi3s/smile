@@ -1,0 +1,43 @@
+#!/usr/bin/env just --justfile
+
+alias r := run
+
+D2_THEME := "1"
+set shell := ["bash", "-c"]
+
+IMG_EXT := "svg"
+OUT_DIR := "build"
+GEN_IMG_DIR := "generated"
+TYPST_SRC := "README.typ"
+TYPST_OUT := OUT_DIR / "README.pdf"
+
+default:
+    @just --list
+
+_check-tools:
+    @command -v d2    >/dev/null 2>&1 || { echo "❌ Setup d2: https://d2lang.com/install"; exit 1; }
+    @command -v typst >/dev/null 2>&1 || { echo "❌ Setup typst"; exit 1; }
+
+build: _compile-typst
+
+[script("bash")]
+_generate-images:
+    mkdir -p {{ GEN_IMG_DIR }}
+    for f in *.d2; do
+        base="${f%.d2}"
+        out="{{ GEN_IMG_DIR }}/${base}.{{ IMG_EXT }}"
+        d2 -t {{ D2_THEME }} "$f" "$out"
+    done
+
+_compile-typst: _check-tools _generate-images
+    @mkdir -p {{ OUT_DIR }}
+    @typst compile {{ TYPST_SRC }} {{ TYPST_OUT }}
+
+clean:
+    @rm -rf {{ OUT_DIR }} {{ GEN_IMG_DIR }}
+
+# 🔁 Watch-mode (.typ and .d2 files
+run: _compile-typst
+    watchexec --clear --debounce 300 --exts typ,d2 \
+        --ignore '{{ OUT_DIR }}/*' --ignore '{{ GEN_IMG_DIR }}/*' -- \
+        'just build'

@@ -1,12 +1,11 @@
 import logging
 
 from PySide6.QtCore import QRect, Slot
-from PySide6.QtGui import QBrush, QImage, QPainter, QPen, QPixmap, Qt
-from PySide6.QtWidgets import QMainWindow
+from PySide6.QtGui import QImage, QPainter, QPen, QPixmap, Qt
+from PySide6.QtWidgets import QMainWindow, QMessageBox
 
-from smile.camera import frame
 from smile.camera.frame import Frame
-from smile.recognition.face_detection import RecognitionResult
+from smile.recognition.detectors.face_detection import RecognitionResult
 from smile.ui.generated.ui_main_window import Ui_MainWindow
 
 logger = logging.getLogger(__name__)
@@ -17,6 +16,8 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self._recognition_result = RecognitionResult([], 0, 0)
+        self._alpha = 0.3
+        self._fps_smooth = 30.0  # Initial estimate
         self._prev_time_ns = 0
 
     @Slot(Frame)
@@ -54,9 +55,18 @@ class MainWindow(QMainWindow):
                 painter.end()
 
         self.ui.video_label.setPixmap(pixmap)
-        fps: float = 1_000_000_000 / (frame.timestamp_ns - self._prev_time_ns)
+
+        self.update_fps(frame)
+
+    def update_fps(self, frame: Frame) -> None:
+        # fps: float = 1_000_000_000 / (frame.timestamp_ns - self._prev_time_ns)
+        delta_fps_ns = frame.timestamp_ns - self._prev_time_ns
+        fps_instant = 1_000_000_000 / delta_fps_ns
+        self._fps_smooth = (self._alpha * fps_instant +
+                            (1 - self._alpha) * self._fps_smooth)
         self._prev_time_ns = frame.timestamp_ns
-        self.ui.statusbar.showMessage(f"fps: {fps:.2f}")
+        self.ui.statusbar.showMessage(f"FPS: {self._fps_smooth:.1f}  |  Frame: {frame.frame_id}")
+
 
     @Slot(RecognitionResult)
     def update_detection(self, detection_result: RecognitionResult) -> None:
@@ -66,3 +76,10 @@ class MainWindow(QMainWindow):
         else:
             self.ui.smile_label.setText("🖖") # ("👾")
 
+    @Slot(str)
+    def on_camera_error(self, message: str):
+        QMessageBox.critical(
+            self,
+            "Camera Error",
+            f"{message}\n\nPlease check camera connection and restart."
+        )
