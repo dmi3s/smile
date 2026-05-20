@@ -49,11 +49,12 @@ class CameraWorker(QObject):
     def _capture_frame(self) -> None:
         if self._stopping:
             return
-
+        assert self._cap is not None
         ret, bgr_frame = self._cap.read()
 
         if not ret:
             logger.warning("Failed to read frame")
+            self.error.emit("Failed to read frame")
             return
 
         timestamp_ns = time.monotonic_ns()

@@ -12,7 +12,7 @@ def _setup_logging(logLevel: int | str | None) -> None:
         datefmt="%Y-%m-%d %H:%M:%S",
         handlers=[
             logging.StreamHandler(),  # В консоль
-            logging.FileHandler(f"smile-{dt.today()}.log"),  # В файл
+            # logging.FileHandler(f"smile-{dt.today()}.log"),  # В файл
         ],
     )
 

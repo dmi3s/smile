@@ -4,7 +4,7 @@ from PySide6.QtCore import QCoreApplication, QThread, Signal, Slot
 from PySide6.QtWidgets import QApplication
 
 from smile.camera.camera_worker import CameraWorker
-from smile.recognition.recognition_worker import RecognitionWorker
+from smile.recognition.detectors.recognition_worker import RecognitionWorker
 from smile.windows.main_window import MainWindow
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ class SmileApp(QApplication):
 
         self.camera_thread.started.connect(self.camera_worker.start)
         self.camera_worker.frame_ready.connect(self.window.update_frame)
-        self.camera_worker.frame_ready.connect(self.recognition_worker.submit_frame)
+        self.camera_worker.frame_ready.connect(self.recognition_worker.update_frame)
 
         self.recognition_thread.started.connect(self.recognition_worker.start)
         self.recognition_worker.recognition_ready.connect(self.window.update_detection)
@@ -43,6 +43,8 @@ class SmileApp(QApplication):
 
         self.camera_thread.finished.connect(self.camera_worker.deleteLater)
         self.recognition_thread.finished.connect(self.recognition_worker.deleteLater)
+
+        self.camera_worker.error.connect(self.window.on_camera_error)
 
         self.window.show()
 
