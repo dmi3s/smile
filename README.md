@@ -1,3 +1,4 @@
+![logo](src/smile/resources/icons/smile-lol.png)
 # Smile
 
 Realtime face detection playground built with Python, Qt and MediaPipe.
