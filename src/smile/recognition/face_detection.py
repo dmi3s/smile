@@ -1,17 +1,19 @@
 from dataclasses import dataclass
 
 
-@dataclass(frozen=True)
+@dataclass(slots=True, frozen=True)
 class FaceBox:
     fx: float
     fy: float
     fw: float
     fh: float
 
-@dataclass(frozen=True)
+
+@dataclass(slots=True, frozen=True)
 class DetectedFaceBox:
     bbox: FaceBox
     score: float
+
 
 @dataclass(slots=True, frozen=True)
 class RecognitionResult:
