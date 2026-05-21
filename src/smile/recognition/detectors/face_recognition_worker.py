@@ -14,29 +14,35 @@ from smile.recognition.detectors.face_detection import DetectedFaceBox, FaceBox,
 
 logger = logging.getLogger(__name__)
 
-MODEL_PATH = (
-    Path(__file__).resolve().parent.parent / "models" / "blaze_face_short_range.tflite"
-)
-
 class FaceRecognitionWorker(QObject):
     recognition_ready = Signal(RecognitionResult)
     error = Signal(str)
 
-    def __init__(self) -> None:
+    def __init__(self, model_path: Path) -> None:
         super().__init__()
+        self._model_path: Path = model_path
+        logger.info(f"Init with {model_path=}")
+        self._detector: vision.FaceDetector | None = None
         self._latest_frame: Frame | None = None
         self._busy = False
         self._stopping = False
 
-        base_options = python.BaseOptions(
-            model_asset_path=str(MODEL_PATH)
-        )
-        options = vision.FaceDetectorOptions(
-            base_options=base_options,
-            min_detection_confidence=0.5,
-            running_mode=vision.RunningMode.VIDEO,
-        )
-        self._detector = vision.FaceDetector.create_from_options(options)
+    @Slot()
+    def wakeup(self):
+        try:
+            base_options = python.BaseOptions(
+                model_asset_path=str(self._model_path)
+            )
+            options = vision.FaceDetectorOptions(
+                base_options=base_options,
+                min_detection_confidence=0.5,
+                running_mode=vision.RunningMode.VIDEO,
+            )
+            self._detector = vision.FaceDetector.create_from_options(options)
+        except Exception as e:
+            self.error.emit(str(e))
+            logger.error(str(e))
+        logger.info("Started")
 
     @Slot(Frame)
     def update_frame(self, frame: Frame) -> None:
@@ -48,7 +54,6 @@ class FaceRecognitionWorker(QObject):
     # NOTE: In this version of MediaPipe Tasks API (0.10+), FaceDetector with
     # RunningMode.VIDEO returns bounding box coordinates in absolute pixels
     # relative to the input image dimensions (small_data), NOT normalized [0,1].
-    # Scaling factor x_scale = original_width / small_width converts to original frame coords.
     # If behavior changes in future versions, check the heuristic in _construct_recognition_result.
     @staticmethod
     def _construct_recognition_result(
@@ -60,7 +65,8 @@ class FaceRecognitionWorker(QObject):
 
         faces: list[DetectedFaceBox] = []
         for detection in detection_result.detections:
-            assert detection.categories[0].score is not None
+            assert detection.categories[0].score
+            # Normalize coords to [0,1]
             faces.append(
                 DetectedFaceBox(
                     bbox=FaceBox(
@@ -107,19 +113,20 @@ class FaceRecognitionWorker(QObject):
                 data=small_data
             )
 
+            assert self._detector
             result = self._detector.detect_for_video(
                 image,
                 frame.timestamp_ns // 1_000_000
             )
 
-            rr = FaceRecognitionWorker._construct_recognition_result(
+            result = FaceRecognitionWorker._construct_recognition_result(
                 result,
                 1.0 / image.width,
                 1.0 / image.height,
                 frame
             )
 
-            self.recognition_ready.emit(rr)
+            self.recognition_ready.emit(result)
 
         except Exception as e:
             self.error.emit(str(e))
@@ -134,17 +141,15 @@ class FaceRecognitionWorker(QObject):
                 self._busy = False
 
     @Slot()
-    def stop(self):
+    def shutdown(self):
         self._stopping = True
         self._latest_frame = None
 
         if not self._busy:
             self._cleanup()
-
-    def _cleanup(self):
-        self._detector.close()
         logger.info("Stopped")
 
-    @Slot()
-    def start(self) -> None:
-        logger.info("Started")
+    def _cleanup(self):
+        if self._detector:
+            self._detector.close()
+            self._detector = None

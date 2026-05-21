@@ -13,7 +13,7 @@ class OverlayLabel(QLabel):
         self._detection_rects: tuple[ColoredQRect, ...] = ()
 
         self._show_statistics: bool = False
-        self._fps_smooth = FloatSmoother(alpha= 0.05)
+        self._fps_smooth = FloatSmoother(alpha= 0.1)
         self._prev_timestamp_ns: int = 0
         self._timestamp_ns: int = 0
 

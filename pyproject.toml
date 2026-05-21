@@ -11,15 +11,14 @@ dependencies = [
     "numpy>=2.4.5",
     "opencv-python>=4.13.0.92",
     "pyside6>=6.11.1",
-    "tool>=0.8.0",
+#    "tool>=0.8.0",
 ]
 
 [dependency-groups]
 dev = [
     "mypy>=2.1.0",
     "ruff>=0.15.13",
-    "tool>=0.8.0",
-    "ty>=0.0.38",
+ #   "tool>=0.8.0",
 ]
 
 [project.scripts]

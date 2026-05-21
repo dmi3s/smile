@@ -6,8 +6,9 @@ dist/
 wheels/
 *.egg-info
 *.log
-
+logs/
 .idea/
+
 # Virtual environments
 .venv
 src/smile/ui/generated/ui_main_window.py

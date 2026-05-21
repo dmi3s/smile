@@ -55,12 +55,16 @@ class MainWindow(QMainWindow):
 
 
     @Slot(RecognitionResult)
-    def update_detection(self, detection_result: RecognitionResult) -> None:
+    def update_face_recognition(self, detection_result: RecognitionResult) -> None:
         self._recognition_result = detection_result
         if len(detection_result.faces):
             self.ui.smile_label.setText("😐")
         else:
             self.ui.smile_label.setText("🖖") # ("👾")
+
+    @Slot(RecognitionResult)
+    def update_smile_status(self, smile_status: RecognitionResult) -> None:
+        logger.info(f"update_smile_status: {smile_status=}")
 
     @Slot(str)
     def camera_worker_error(self, msg: str) -> None:

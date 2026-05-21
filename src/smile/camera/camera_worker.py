@@ -28,7 +28,7 @@ class CameraWorker(QObject):
         logger.info("Created")
 
     @Slot()
-    def start(self) -> None:
+    def wakeup(self) -> None:
         logger.info("Starting")
         self._cap = cv2.VideoCapture(0)
 
@@ -70,7 +70,7 @@ class CameraWorker(QObject):
         self.frame_ready.emit(frame)
 
     @Slot()
-    def stop(self) -> None:
+    def shutdown(self) -> None:
         logger.info("Stopping")
         self._stopping = True
 
