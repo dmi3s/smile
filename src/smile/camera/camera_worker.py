@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class CameraWorker(QObject):
     frame_ready = Signal(Frame)
-    error = Signal(str)
+    camera_error = Signal(str)
     camera_started = Signal()
     # ToDo:
     # stop_camera = Signal()
@@ -34,7 +34,7 @@ class CameraWorker(QObject):
 
         if not self._cap.isOpened():
             logger.error("Cannot open camera")
-            self.error.emit("Cannot open camera")
+            self.camera_error.emit("Cannot open camera")
             return
 
         self.camera_started.emit()
@@ -54,7 +54,7 @@ class CameraWorker(QObject):
 
         if not ret:
             logger.warning("Failed to read frame")
-            self.error.emit("Failed to read frame")
+            self.camera_error.emit("Failed to read frame")
             return
 
         timestamp_ns = time.monotonic_ns()

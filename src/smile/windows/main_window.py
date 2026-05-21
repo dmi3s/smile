@@ -1,12 +1,13 @@
 import logging
 
-from PySide6.QtCore import QRect, Slot
-from PySide6.QtGui import QImage, QPainter, QPen, QPixmap, Qt
+from PySide6.QtCore import Slot
+from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QMainWindow, QMessageBox
 
 from smile.camera.frame import Frame
 from smile.recognition.detectors.face_detection import RecognitionResult
 from smile.ui.generated.ui_main_window import Ui_MainWindow
+from smile.utils.convert import ColoredQRect, faces_to_qrects_with_colors
 
 logger = logging.getLogger(__name__)
 
@@ -15,20 +16,21 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self._recognition_result = RecognitionResult([], 0, 0)
-        self._alpha = 0.3
-        self._fps_smooth = 30.0  # Initial estimate
-        self._prev_time_ns = 0
+        self._recognition_result = RecognitionResult(tuple(), frame_rgb = None)
+
 
     @Slot(Frame)
     def update_frame(self, frame: Frame) -> None:
+        if not self.isVisible():
+            return
+
         image = frame.image
         height, width, channels = image.shape
         # logger.info(f"Frame {frame.frame_id} {width} x {height} x {channels}")
         bytes_per_line = channels * width
 
         qimage = QImage(
-            image.copy().data,
+            image.data,
             width,
             height,
             bytes_per_line,
@@ -36,36 +38,20 @@ class MainWindow(QMainWindow):
         ).copy()
 
         pixmap = QPixmap.fromImage(qimage)
-
-        if self._recognition_result.faces:
-            painter = QPainter(pixmap)
-            try:
-                pen = QPen(Qt.GlobalColor.green)
-                pen.setWidth(2)
-                painter.setPen(pen)
-                for face in self._recognition_result.faces:
-                    rect = QRect(
-                        int( face.bbox.fx * pixmap.width() ),
-                        int( face.bbox.fy * pixmap.height() ),
-                        int( face.bbox.fw * pixmap.width() ),
-                        int( face.bbox.fh * pixmap.height() ),
-                    )
-                    painter.drawRect(rect)
-            finally:
-                painter.end()
-
         self.ui.video_label.setPixmap(pixmap)
 
-        self.update_fps(frame)
+        coords : tuple[ColoredQRect, ...] = faces_to_qrects_with_colors(
+            self._recognition_result.faces,
+            pixmap.width(),
+            pixmap.height()
+        )
 
-    def update_fps(self, frame: Frame) -> None:
-        # fps: float = 1_000_000_000 / (frame.timestamp_ns - self._prev_time_ns)
-        delta_fps_ns = frame.timestamp_ns - self._prev_time_ns
-        fps_instant = 1_000_000_000 / delta_fps_ns
-        self._fps_smooth = (self._alpha * fps_instant +
-                            (1 - self._alpha) * self._fps_smooth)
-        self._prev_time_ns = frame.timestamp_ns
-        self.ui.statusbar.showMessage(f"FPS: {self._fps_smooth:.1f}  |  Frame: {frame.frame_id}")
+        ts_ns =  frame.timestamp_ns if frame else 0
+        self.ui.video_label.set_detections(
+            coords,
+            ts_ns,
+            True
+        )
 
 
     @Slot(RecognitionResult)
@@ -77,9 +63,9 @@ class MainWindow(QMainWindow):
             self.ui.smile_label.setText("🖖") # ("👾")
 
     @Slot(str)
-    def on_camera_error(self, message: str):
+    def camera_worker_error(self, msg: str) -> None:
         QMessageBox.critical(
             self,
             "Camera Error",
-            f"{message}\n\nPlease check camera connection and restart."
+            f"{msg}\n\nPlease check camera connection and restart."
         )

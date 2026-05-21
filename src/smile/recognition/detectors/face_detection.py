@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from smile.camera.frame import Frame
+
 
 @dataclass(slots=True, frozen=True)
 class FaceBox:
@@ -17,6 +19,5 @@ class DetectedFaceBox:
 
 @dataclass(slots=True, frozen=True)
 class RecognitionResult:
-    faces: list[DetectedFaceBox]
-    timestamp_ns: int
-    frame_id: int
+    faces: tuple[DetectedFaceBox, ...]
+    frame_rgb: Frame | None

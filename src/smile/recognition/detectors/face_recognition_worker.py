@@ -18,7 +18,7 @@ MODEL_PATH = (
     Path(__file__).resolve().parent.parent / "models" / "blaze_face_short_range.tflite"
 )
 
-class RecognitionWorker(QObject):
+class FaceRecognitionWorker(QObject):
     recognition_ready = Signal(RecognitionResult)
     error = Signal(str)
 
@@ -36,8 +36,6 @@ class RecognitionWorker(QObject):
             min_detection_confidence=0.5,
             running_mode=vision.RunningMode.VIDEO,
         )
-        # base_options = (BaseOptions(model_asset_path="/path/to/model.task"),)
-        
         self._detector = vision.FaceDetector.create_from_options(options)
 
     @Slot(Frame)
@@ -57,8 +55,7 @@ class RecognitionWorker(QObject):
         detection_result: DetectionResult,
         x_scale: float,
         y_scale: float,
-        frame_id : int,
-        timestamp_ns : int
+        frame_rgb: Frame,
     ) -> RecognitionResult:
 
         faces: list[DetectedFaceBox] = []
@@ -77,9 +74,8 @@ class RecognitionWorker(QObject):
             )
 
         return RecognitionResult(
-            faces=faces,
-            frame_id=frame_id,
-            timestamp_ns=timestamp_ns
+            faces= tuple(faces),
+            frame_rgb= frame_rgb
         )
 
     @Slot()
@@ -116,12 +112,11 @@ class RecognitionWorker(QObject):
                 frame.timestamp_ns // 1_000_000
             )
 
-            rr = RecognitionWorker._construct_recognition_result(
+            rr = FaceRecognitionWorker._construct_recognition_result(
                 result,
                 1.0 / image.width,
                 1.0 / image.height,
-                frame.frame_id,
-                frame.timestamp_ns
+                frame
             )
 
             self.recognition_ready.emit(rr)
