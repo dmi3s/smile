@@ -1,24 +1,49 @@
 import logging
+import threading
+import traceback
 from pathlib import Path
+from types import TracebackType
 
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-from PySide6.QtCore import QObject, QTimer, Signal, Slot
+from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 
-from smile.recognition.detectors.smile_detection import RecognitionResult
+from smile.recognition.detectors.face_detection import RecognitionResult
+from smile.recognition.detectors.smile_detection import SmileResult
 from smile.utils.latest_value_mailbox import LatestValueMailbox
 
 logger = logging.getLogger(__name__)
 
 class SmileRecognitionWorker(QObject):
-    smile_status_ready = Signal(RecognitionResult)
-    error = Signal(str)
+    """
+    Worker that runs SMILE recognition tasks
+
+    Signals from a running worker thread.
+        finished
+            str thread name
+        error
+            tuple (exctype, value, traceback.format_exc())
+        result
+            object data returned from processing: RecognitionResult
+        progress
+            tuple (thread_name, progress_value)
+    """
+
+    result = Signal(SmileResult)
+    error = Signal(type[BaseException], BaseException, TracebackType)
+    progress = Signal(str, int)
+    finished = Signal(str)
 
     def __init__(self, model_path: Path):
         super().__init__()
         self._model_path = model_path
         self._detector = None
         self._mailbox = LatestValueMailbox[RecognitionResult]()
+
+        thread_name: str = QThread.currentThread().objectName()
+        logger.info(f'Created on thread "{thread_name}"')
+        logger.info(f"Init with {model_path=}")
+
 
     @Slot()
     def wakeup(self) -> None:
@@ -35,20 +60,22 @@ class SmileRecognitionWorker(QObject):
             )
             self._mailbox.wakeup()
         except Exception as e:
-            self.error.emit(f"Init failed: {e}")
+            self.error.emit(type(e), e, traceback.format_exc())
             logger.error(f"Init failed: {e}")
             return
         logger.info("Started")
 
     def _cleanup(self):
         assert not self._mailbox.busy
-        self._detector.close()
-        self._detector = None
+        if self._detector is not None:
+            self._detector.close()
+            self._detector = None
 
     @Slot()
     def shutdown(self) -> None:
         self._mailbox.shutdown()
         self._cleanup()
+        self.finished.emit(QThread.currentThread().objectName())
         logger.info("Stopped")
 
     @Slot(RecognitionResult)
@@ -58,19 +85,21 @@ class SmileRecognitionWorker(QObject):
             QTimer.singleShot(0, self._process_next)
 
     @Slot()
-    def remove_me(self) -> None:
-        pass
-
-    @Slot()
     def _process_next(self) -> None:
         rec = self._mailbox.extract_data()
 
-        try:
-            QTimer.singleShot(60_000, self.remove_me)
-            logger.info(f"Processing: {rec.faces}")
+        assert rec is not None
+        
+        if rec.frame_rgb is None:
+            self.error.emit(ValueError, ValueError("rec.frame_rgb is None"), "_process_next()")
+            logger.error("_process_next() received empty rec.frame_rgb")
+            return
 
+        try:
+            self.progress.emit(QThread.currentThread().objectName(), rec.frame_rgb.frame_id)
+            self.result.emit(rec)
         except Exception as e:
-            self.error.emit(f"Processing failed: {e}")
+            self.error.emit(type(e), e, traceback.format_exc())
             logger.error(f"Processing failed: {e}")
 
         if self._mailbox.complete_and_should_continue():

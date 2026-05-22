@@ -1,4 +1,5 @@
 import logging
+from types import TracebackType
 
 from PySide6.QtCore import Slot
 from PySide6.QtGui import QImage, QPixmap
@@ -6,6 +7,7 @@ from PySide6.QtWidgets import QMainWindow, QMessageBox
 
 from smile.camera.frame import Frame
 from smile.recognition.detectors.face_detection import RecognitionResult
+from smile.recognition.detectors.smile_detection import SmileResult
 from smile.ui.generated.ui_main_window import Ui_MainWindow
 from smile.utils.convert import ColoredQRect, faces_to_qrects_with_colors
 
@@ -63,7 +65,7 @@ class MainWindow(QMainWindow):
             self.ui.smile_label.setText("🖖") # ("👾")
 
     @Slot(RecognitionResult)
-    def update_smile_status(self, smile_status: RecognitionResult) -> None:
+    def update_smile_status(self, smile_status: SmileResult) -> None:
         logger.info(f"update_smile_status: {smile_status=}")
 
     @Slot(str)
@@ -73,3 +75,15 @@ class MainWindow(QMainWindow):
             "Camera Error",
             f"{msg}\n\nPlease check camera connection and restart."
         )
+
+    @Slot(type[BaseException], BaseException, TracebackType)
+    def smile_worker_error(self,
+                           ex_type: type[BaseException],
+                           ex: BaseException,
+                           traceback: TracebackType) -> None:
+        self.ui.statusbar.showMessage("⚠ Smile Worker Error. Please check log for details.")
+
+    @Slot(int)
+    def smile_worker_progress(self, progress: int) -> None:
+        # ToDo: Display diff with camera.frame_id?.. Have to think.
+        pass

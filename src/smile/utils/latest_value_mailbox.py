@@ -15,6 +15,10 @@ class LatestValueMailbox[T]:
 
     Thread affinity:
         All methods must be called from the same Qt thread.
+
+    Remark:
+        The missing "S" in SOLID here is intentional.
+        Convenience won this round.
     """
 
     _pending_data : T | None = None

@@ -3,7 +3,7 @@ import time
 
 import cv2
 import numpy as np
-from PySide6.QtCore import QObject, QTimer, Signal, Slot
+from PySide6.QtCore import QObject, QTimer, Signal, Slot, QThread
 
 from smile.camera.frame import Frame
 
@@ -22,10 +22,11 @@ class CameraWorker(QObject):
     def __init__(self):
         super().__init__()
         self._frame_id = 0
-        self._timer = None
-        self._cap = None
+        self._timer : QTimer | None= None
+        self._cap : cv2.VideoCapture | None = None
         self._stopping = False
-        logger.info("Created")
+        thread_name : str = QThread.currentThread().objectName()
+        logger.info(f"Created on thread \"{thread_name}\"")
 
     @Slot()
     def wakeup(self) -> None:
@@ -40,8 +41,10 @@ class CameraWorker(QObject):
         self.camera_started.emit()
 
         self._timer = QTimer(self)
+        assert self._timer is not None
         self._timer.timeout.connect(self._capture_frame)
         self._timer.start(33)  # about 30 fps
+
         logger.info("Started")
 
 

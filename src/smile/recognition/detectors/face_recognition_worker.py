@@ -7,7 +7,7 @@ import numpy as np
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.tasks.python.components.containers.detections import DetectionResult
-from PySide6.QtCore import QObject, QTimer, Signal, Slot
+from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 
 from smile.camera.frame import Frame
 from smile.recognition.detectors.face_detection import DetectedFaceBox, FaceBox, RecognitionResult
@@ -21,11 +21,14 @@ class FaceRecognitionWorker(QObject):
     def __init__(self, model_path: Path) -> None:
         super().__init__()
         self._model_path: Path = model_path
-        logger.info(f"Init with {model_path=}")
         self._detector: vision.FaceDetector | None = None
         self._latest_frame: Frame | None = None
         self._busy = False
         self._stopping = False
+        
+        thread_name: str = QThread.currentThread().objectName()
+        logger.info(f'Created on thread "{thread_name}"')
+        logger.info(f"Init with {model_path=}")
 
     @Slot()
     def wakeup(self):

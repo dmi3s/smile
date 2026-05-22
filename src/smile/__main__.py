@@ -5,9 +5,9 @@ from datetime import datetime as dt
 from smile.smile_app import SmileApp
 
 
-def _setup_logging(logLevel: int | str | None) -> None:
+def _setup_logging(log_level: int | str | None) -> None:
     logging.basicConfig(
-        level=logLevel,
+        level=log_level,
         format="%(asctime)s [%(levelname)-8s] [%(thread)X] %(name)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
         handlers=[
@@ -22,3 +22,6 @@ def main() -> None:
 
     app = SmileApp(sys.argv)
     sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()
