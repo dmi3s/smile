@@ -18,7 +18,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self._recognition_result = RecognitionResult(tuple(), frame_rgb = None)
+        self._recognition_result = RecognitionResult(tuple(), frame_bgr= None)
         self._camera_frame_id : int = 0
 
 
@@ -42,7 +42,7 @@ class MainWindow(QMainWindow):
             width,
             height,
             bytes_per_line,
-            QImage.Format.Format_RGB888,
+            QImage.Format.Format_BGR888,
         ).copy()
 
         pixmap = QPixmap.fromImage(qimage)

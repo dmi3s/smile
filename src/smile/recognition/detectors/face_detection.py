@@ -20,4 +20,4 @@ class DetectedFaceBox:
 @dataclass(slots=True, frozen=True)
 class RecognitionResult:
     faces: tuple[DetectedFaceBox, ...]
-    frame_rgb: Frame | None
+    frame_bgr: Frame | None

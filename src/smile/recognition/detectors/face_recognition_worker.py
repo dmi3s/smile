@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import cast
 
 import cv2
 import mediapipe as mp
@@ -8,6 +9,7 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.tasks.python.components.containers.detections import DetectionResult
 from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
+from numpy._typing import NDArray
 
 from smile.camera.frame import Frame
 from smile.recognition.detectors.face_detection import DetectedFaceBox, FaceBox, RecognitionResult
@@ -84,7 +86,7 @@ class FaceRecognitionWorker(QObject):
 
         return RecognitionResult(
             faces= tuple(faces),
-            frame_rgb= frame_rgb
+            frame_bgr= frame_rgb
         )
 
     @Slot()
@@ -109,7 +111,12 @@ class FaceRecognitionWorker(QObject):
                 interpolation=cv2.INTER_AREA
             )
             # Not sure
-            small_data = np.ascontiguousarray(small_data)
+            # small_data = np.ascontiguousarray(small_data)
+
+            small_data = cast(
+                NDArray,
+                cv2.cvtColor(small_data, cv2.COLOR_BGR2RGB)
+            )
 
             image = mp.Image(
                 image_format=mp.ImageFormat.SRGB,

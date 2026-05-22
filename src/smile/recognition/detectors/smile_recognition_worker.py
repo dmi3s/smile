@@ -93,7 +93,7 @@ class SmileRecognitionWorker(QObject):
 
         assert rec is not None
         
-        if rec.frame_rgb is None:
+        if rec.frame_bgr is None:
             self.error.emit(
                 ValueError,
                 ValueError("rec.frame_rgb is None"),
@@ -115,7 +115,7 @@ class SmileRecognitionWorker(QObject):
             logger.error(f"Processing failed: {e}\n{tb}")
         else:
             self.result.emit(res)
-            self.progress.emit(QThread.currentThread().objectName(), rec.frame_rgb.frame_id)
+            self.progress.emit(QThread.currentThread().objectName(), rec.frame_bgr.frame_id)
         finally:
             if self._mailbox.complete_and_should_continue():
                 QTimer.singleShot(0, self._process_next)

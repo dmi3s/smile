@@ -40,7 +40,7 @@ class CameraWorker(QObject):
 
         fps = self._cap.get(cv2.CAP_PROP_FPS)
         logger.info(f"{fps=}")
-        
+
         self.camera_started.emit()
 
         self._timer = QTimer(self)
@@ -68,9 +68,10 @@ class CameraWorker(QObject):
         #     NDArray,
         #     cv2.cvtColor(bgr_frame, cv2.COLOR_BGR2RGB)
         # )
-        rgb_image = np.ascontiguousarray(bgr_frame[:, :, ::-1])
+        # or
+        # rgb_image = np.ascontiguousarray(bgr_frame[:, :, ::-1])
 
-        frame = Frame.from_owned(rgb_image, self._frame_id, timestamp_ns)
+        frame = Frame.from_copy(bgr_frame, self._frame_id, timestamp_ns)
 
         self._frame_id += 1
         self.frame_ready.emit(frame)
