@@ -1,9 +1,12 @@
 import logging
+import sys
 import threading
+import time
 import traceback
 from pathlib import Path
 from types import TracebackType
 
+from PySide6 import QtTest
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
@@ -26,11 +29,11 @@ class SmileRecognitionWorker(QObject):
         result
             object data returned from processing: RecognitionResult
         progress
-            tuple (thread_name, progress_value)
+            tuple (progress_value)
     """
 
     result = Signal(SmileResult)
-    error = Signal(type[BaseException], BaseException, TracebackType)
+    error = Signal(type[BaseException], BaseException, str)
     progress = Signal(str, int)
     finished = Signal(str)
 
@@ -79,7 +82,7 @@ class SmileRecognitionWorker(QObject):
         logger.info("Stopped")
 
     @Slot(RecognitionResult)
-    def update_recognition_result(self, rec: RecognitionResult) -> None:
+    def new_recognition_result(self, rec: RecognitionResult) -> None:
         self._mailbox.new_data(rec)
         if self._mailbox.try_start():
             QTimer.singleShot(0, self._process_next)
@@ -91,16 +94,28 @@ class SmileRecognitionWorker(QObject):
         assert rec is not None
         
         if rec.frame_rgb is None:
-            self.error.emit(ValueError, ValueError("rec.frame_rgb is None"), "_process_next()")
+            self.error.emit(
+                ValueError,
+                ValueError("rec.frame_rgb is None"),
+                "_process_next()"
+            )
             logger.error("_process_next() received empty rec.frame_rgb")
             return
 
         try:
+            # SmileResult = RecognitionResult
+            # ToDo: Replace this dummy code to real one
+            # time.sleep(0.1)
+            QtTest.QTest.qWait(69)
+            res: SmileResult = rec
+        except BaseException as e:
+            exctype: type  = type(e)
+            tb: str = traceback.format_exc()
+            self.error.emit(exctype, e, tb)
+            logger.error(f"Processing failed: {e}\n{tb}")
+        else:
+            self.result.emit(res)
             self.progress.emit(QThread.currentThread().objectName(), rec.frame_rgb.frame_id)
-            self.result.emit(rec)
-        except Exception as e:
-            self.error.emit(type(e), e, traceback.format_exc())
-            logger.error(f"Processing failed: {e}")
-
-        if self._mailbox.complete_and_should_continue():
-            QTimer.singleShot(0, self._process_next)
+        finally:
+            if self._mailbox.complete_and_should_continue():
+                QTimer.singleShot(0, self._process_next)

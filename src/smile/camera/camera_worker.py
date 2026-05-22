@@ -38,6 +38,9 @@ class CameraWorker(QObject):
             self.camera_error.emit("Cannot open camera")
             return
 
+        fps = self._cap.get(cv2.CAP_PROP_FPS)
+        logger.info(f"{fps=}")
+        
         self.camera_started.emit()
 
         self._timer = QTimer(self)

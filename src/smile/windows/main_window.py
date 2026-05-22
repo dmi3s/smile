@@ -1,7 +1,7 @@
 import logging
 from types import TracebackType
 
-from PySide6.QtCore import Slot
+from PySide6.QtCore import Slot, QSize
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QMainWindow, QMessageBox
 
@@ -19,6 +19,7 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self._recognition_result = RecognitionResult(tuple(), frame_rgb = None)
+        self._camera_frame_id : int = 0
 
 
     @Slot(Frame)
@@ -30,6 +31,11 @@ class MainWindow(QMainWindow):
         height, width, channels = image.shape
         # logger.info(f"Frame {frame.frame_id} {width} x {height} x {channels}")
         bytes_per_line = channels * width
+        
+        if self._camera_frame_id == 0:
+            self.ui.video_label.setMinimumSize(QSize(width, height))
+            logger.info(f"Frame size: {width}x{height}")
+        self._camera_frame_id = frame.frame_id
 
         qimage = QImage(
             image.data,
@@ -55,7 +61,6 @@ class MainWindow(QMainWindow):
             True
         )
 
-
     @Slot(RecognitionResult)
     def update_face_recognition(self, detection_result: RecognitionResult) -> None:
         self._recognition_result = detection_result
@@ -66,7 +71,7 @@ class MainWindow(QMainWindow):
 
     @Slot(RecognitionResult)
     def update_smile_status(self, smile_status: SmileResult) -> None:
-        logger.info(f"update_smile_status: {smile_status=}")
+        pass
 
     @Slot(str)
     def camera_worker_error(self, msg: str) -> None:
@@ -76,14 +81,14 @@ class MainWindow(QMainWindow):
             f"{msg}\n\nPlease check camera connection and restart."
         )
 
-    @Slot(type[BaseException], BaseException, TracebackType)
+    @Slot(type(BaseException), BaseException, str)
     def smile_worker_error(self,
                            ex_type: type[BaseException],
                            ex: BaseException,
                            traceback: TracebackType) -> None:
         self.ui.statusbar.showMessage("⚠ Smile Worker Error. Please check log for details.")
 
-    @Slot(int)
-    def smile_worker_progress(self, progress: int) -> None:
+    @Slot(str, int)
+    def smile_worker_progress(self, thread_name: str, smile_frame_id: int) -> None:
         # ToDo: Display diff with camera.frame_id?.. Have to think.
-        pass
+        self.ui.statusbar.showMessage(f"Smile Worker delay (in frames): {self._camera_frame_id - smile_frame_id}")

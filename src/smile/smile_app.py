@@ -60,7 +60,7 @@ class SmileApp(QApplication):
             
         for th in self.threads:
             if not th.wait(3000):
-                logger.warning(f"Thread \"{th.objectName}\" did not stop.")
+                logger.warning(f"Thread \"{th.objectName()}\" did not stop.")
 
         logger.info("Shutdown completed")
 
@@ -68,11 +68,12 @@ class SmileApp(QApplication):
         self.smile_worker.result.connect(self.window.update_smile_status)
         self.smile_worker.error.connect(self.window.smile_worker_error)
         self.smile_worker.progress.connect(self.window.smile_worker_progress)
+
         self.stop_smile.connect(self.smile_worker.shutdown)
 
     def _setup_face_worker(self):
         self.face_worker.recognition_ready.connect(self.window.update_face_recognition)
-        self.face_worker.recognition_ready.connect(self.smile_worker.update_recognition_result)
+        self.face_worker.recognition_ready.connect(self.smile_worker.new_recognition_result)
 
         self.stop_face.connect(self.face_worker.shutdown)
 
