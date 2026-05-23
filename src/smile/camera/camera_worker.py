@@ -2,8 +2,7 @@ import logging
 import time
 
 import cv2
-import numpy as np
-from PySide6.QtCore import QObject, QTimer, Signal, Slot, QThread
+from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 
 from smile.camera.frame import Frame
 
@@ -38,8 +37,13 @@ class CameraWorker(QObject):
             self.camera_error.emit("Cannot open camera")
             return
 
+        self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, 800)
+        self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 448)
+        self._cap.set(cv2.CAP_PROP_FPS, 20)
+        w = int(self._cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        h = int(self._cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = self._cap.get(cv2.CAP_PROP_FPS)
-        logger.info(f"{fps=}")
+        logger.info(f"Camera mode: {w}x{h} @ {fps}")
 
         self.camera_started.emit()
 
@@ -56,6 +60,7 @@ class CameraWorker(QObject):
         if self._stopping:
             return
         assert self._cap is not None
+
         ret, bgr_frame = self._cap.read()
 
         if not ret:
@@ -72,6 +77,7 @@ class CameraWorker(QObject):
         # rgb_image = np.ascontiguousarray(bgr_frame[:, :, ::-1])
 
         frame = Frame.from_copy(bgr_frame, self._frame_id, timestamp_ns)
+        bgr_frame.flags.writeable = False
 
         self._frame_id += 1
         self.frame_ready.emit(frame)
