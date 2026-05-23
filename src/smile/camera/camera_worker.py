@@ -20,8 +20,9 @@ class CameraWorker(QObject):
 
     def __init__(self):
         super().__init__()
-        self._frame_id = 0
-        self._timer : QTimer | None= None
+        self._frame_count = 0
+        self._timer : QTimer = QTimer(self)
+        self._timer.timeout.connect(self._capture_frame)
         self._cap : cv2.VideoCapture | None = None
         self._stopping = False
         thread_name : str = QThread.currentThread().objectName()
@@ -29,30 +30,41 @@ class CameraWorker(QObject):
 
     @Slot()
     def wakeup(self) -> None:
-        logger.info("Starting")
+        thread_name : str = QThread.currentThread().objectName()
+        logger.info(f"Waking up on thread \"{thread_name}\"")
+
         self._cap = cv2.VideoCapture(0)
 
+        assert self._cap is not None
+
         if not self._cap.isOpened():
-            logger.error("Cannot open camera")
-            self.camera_error.emit("Cannot open camera")
+            logger.error("Cannot open default camera")
+            self.camera_error.emit("Cannot open default camera")
             return
+
+        self._setup_camera()
+
+        self.camera_started.emit()
+
+        logger.info("Started")
+
+    def _setup_camera(self):
+        assert self._cap is not None
+        assert self._cap.isOpened()
 
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, 800)
         self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 448)
         self._cap.set(cv2.CAP_PROP_FPS, 20)
+        fps : int = int(self._cap.get(cv2.CAP_PROP_FPS))
+
         w = int(self._cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(self._cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = self._cap.get(cv2.CAP_PROP_FPS)
-        logger.info(f"Camera mode: {w}x{h} @ {fps}")
+        backend: str = self._cap.getBackendName()
+        logger.info(f"Camera mode: {w}x{h} @ {fps} ({backend=})")
 
-        self.camera_started.emit()
+        assert 0 < fps <= 1000
+        self._timer.start(1000 // fps)
 
-        self._timer = QTimer(self)
-        assert self._timer is not None
-        self._timer.timeout.connect(self._capture_frame)
-        self._timer.start(33)  # about 30 fps
-
-        logger.info("Started")
 
 
     @Slot()
@@ -76,16 +88,17 @@ class CameraWorker(QObject):
         # or
         # rgb_image = np.ascontiguousarray(bgr_frame[:, :, ::-1])
 
-        frame = Frame.from_copy(bgr_frame, self._frame_id, timestamp_ns)
+        frame = Frame.create_copy(bgr_frame, self._frame_count, timestamp_ns)
         bgr_frame.flags.writeable = False
 
-        self._frame_id += 1
+        self._frame_count += 1
+
         self.frame_ready.emit(frame)
 
     @Slot()
     def shutdown(self) -> None:
-        logger.info("Stopping")
         self._stopping = True
+        self._frame_count = 0
 
         if self._timer is not None:
             self._timer.stop()

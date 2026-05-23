@@ -1,5 +1,5 @@
-from smile.recognition.detectors.face_detection import DetectedFaceBox, FaceBox, RecognitionResult
+from smile.recognition.detectors.face_detection import DetectedFaceBox, FaceBox, FaceDetectionResult
 
 SmileBox = FaceBox
 DetectedSmileBox = DetectedFaceBox
-SmileResult = RecognitionResult
+SmileDetectionResult = FaceDetectionResult

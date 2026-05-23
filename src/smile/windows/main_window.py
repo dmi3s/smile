@@ -1,13 +1,13 @@
 import logging
 from types import TracebackType
 
-from PySide6.QtCore import Slot, QSize
-from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtWidgets import QMainWindow, QMessageBox
+from PySide6.QtCore import Slot, QSize, QObject, QEvent, Qt
+from PySide6.QtGui import QImage, QPixmap, QKeyEvent
+from PySide6.QtWidgets import QMainWindow, QMessageBox, QApplication
 
 from smile.camera.frame import Frame
-from smile.recognition.detectors.face_detection import RecognitionResult
-from smile.recognition.detectors.smile_detection import SmileResult
+from smile.recognition.detectors.face_detection import FaceDetectionResult
+from smile.recognition.detectors.smile_detection import SmileDetectionResult
 from smile.ui.generated.ui_main_window import Ui_MainWindow
 from smile.utils.convert import ColoredQRect, faces_to_qrects_with_colors
 
@@ -18,9 +18,20 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self._recognition_result = RecognitionResult(tuple(), frame_bgr= None)
-        self._camera_frame_id : int = 0
+        self._recognition_result = FaceDetectionResult(tuple(), frame_bgr= None)
+        self.installEventFilter(self)
+        self._camera_frame_id = 0
 
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:
+        if event.type() == QEvent.Type.KeyPress:
+            key_event = QKeyEvent(event)
+            logger.info(f"KeyPress: {key_event.key()} with modifiers= {key_event.modifiers()}")
+            if (key_event.key() == Qt.Key.Key_Q and
+                    key_event.modifiers() == Qt.KeyboardModifier.ControlModifier):
+                QApplication.quit()
+            return True
+        else:
+            return super().eventFilter(obj, event)
 
     @Slot(Frame)
     def update_frame(self, frame: Frame) -> None:
@@ -32,9 +43,10 @@ class MainWindow(QMainWindow):
         # logger.info(f"Frame {frame.frame_id} {width} x {height} x {channels}")
         bytes_per_line = channels * width
         
-        if self._camera_frame_id == 0:
+        if frame.frame_id == 0:
             self.ui.video_label.setMinimumSize(QSize(width, height))
             logger.info(f"Frame size: {width}x{height}")
+
         self._camera_frame_id = frame.frame_id
 
         qimage = QImage(
@@ -61,16 +73,16 @@ class MainWindow(QMainWindow):
             True
         )
 
-    @Slot(RecognitionResult)
-    def update_face_recognition(self, detection_result: RecognitionResult) -> None:
+    @Slot(FaceDetectionResult)
+    def update_face_recognition(self, detection_result: FaceDetectionResult) -> None:
         self._recognition_result = detection_result
         if len(detection_result.faces):
             self.ui.smile_label.setText("😐")
         else:
             self.ui.smile_label.setText("🖖") # ("👾")
 
-    @Slot(RecognitionResult)
-    def update_smile_status(self, smile_status: SmileResult) -> None:
+    @Slot(FaceDetectionResult)
+    def update_smile_status(self, smile_status: SmileDetectionResult) -> None:
         pass
 
     @Slot(str)
