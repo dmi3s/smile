@@ -21,17 +21,17 @@ class CameraWorker(QObject):
     def __init__(self):
         super().__init__()
         self._frame_count = 0
-        self._timer : QTimer = QTimer(self)
+        self._timer: QTimer | None = QTimer(self)
         self._timer.timeout.connect(self._capture_frame)
-        self._cap : cv2.VideoCapture | None = None
+        self._cap: cv2.VideoCapture | None = None
         self._stopping = False
-        thread_name : str = QThread.currentThread().objectName()
-        logger.info(f"Created on thread \"{thread_name}\"")
+        thread_name: str = QThread.currentThread().objectName()
+        logger.info(f'Created on thread "{thread_name}"')
 
     @Slot()
     def wakeup(self) -> None:
-        thread_name : str = QThread.currentThread().objectName()
-        logger.info(f"Waking up on thread \"{thread_name}\"")
+        thread_name: str = QThread.currentThread().objectName()
+        logger.info(f'Waking up on thread "{thread_name}"')
 
         self._cap = cv2.VideoCapture(0)
 
@@ -55,7 +55,7 @@ class CameraWorker(QObject):
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, 800)
         self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 448)
         self._cap.set(cv2.CAP_PROP_FPS, 20)
-        fps : int = int(self._cap.get(cv2.CAP_PROP_FPS))
+        fps: int = int(self._cap.get(cv2.CAP_PROP_FPS))
 
         w = int(self._cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(self._cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -63,9 +63,8 @@ class CameraWorker(QObject):
         logger.info(f"Camera mode: {w}x{h} @ {fps} ({backend=})")
 
         assert 0 < fps <= 1000
+        assert self._timer is not None
         self._timer.start(1000 // fps)
-
-
 
     @Slot()
     def _capture_frame(self) -> None:

@@ -3,7 +3,6 @@ from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QLabel
 
 from smile.utils.convert import ColoredQRect
-from smile.utils.lerp import lerp
 from smile.utils.smooth import FloatSmoother
 
 
@@ -13,11 +12,13 @@ class OverlayLabel(QLabel):
         self._detection_rects: tuple[ColoredQRect, ...] = ()
 
         self._show_statistics: bool = False
-        self._fps_smooth = FloatSmoother(alpha= 0.03)
+        self._fps_smooth = FloatSmoother(alpha=0.03)
         self._prev_timestamp_ns: int = 0
         self._timestamp_ns: int = 0
 
-    def set_detections(self, rects: tuple[ColoredQRect, ...], time_ns: int, show_statistics = False) -> None:
+    def set_detections(
+        self, rects: tuple[ColoredQRect, ...], time_ns: int, show_statistics=False
+    ) -> None:
         """Thread-safe update: call from GUI thread only"""
         self._detection_rects = rects
         self._timestamp_ns = time_ns
@@ -47,8 +48,7 @@ class OverlayLabel(QLabel):
                 if delta > 0:
                     fps: float = self._fps_smooth.update(1e9 / delta)
                     self._prev_timestamp_ns = self._timestamp_ns
-                    
+
                     pen = QPen(QColor("lime"), 2)
                     p.setPen(pen)
                     p.drawText(10, 10, f"FPS: {fps:.1f}")
-
