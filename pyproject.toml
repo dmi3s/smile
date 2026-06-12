@@ -1,15 +1,32 @@
+[build-system]
+requires = ["uv>=0.4.0", "hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "smile"
 version = "0.1.0"
 description = "Smile detect project"
 readme = "README.md"
 requires-python = ">=3.12"
-
 dependencies = [
     "mediapipe>=0.10.35",
     "numpy>=2.4.5",
     "opencv-python>=4.13.0.92",
     "pyside6>=6.11.1",
+]
+keywords = ["smile", "face", "recognition", "detection", "mediapipe", "opencv", "pyside6"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Scientific/Engineering :: Human Machine Interfaces",
 ]
 
 [dependency-groups]
@@ -18,19 +35,72 @@ dev = [
     "ruff>=0.15.13",
 ]
 
-[project.scripts]
+[project.gui-scripts]
 smile = "smile.__main__:main"
 
+[[project.authors]]
+name = "Sergey (dmi3s) Dmitriev"
+email = "dmi3evsv@gmail.com"
+
+[[project.maintainers]]
+name = "Sergey (dmi3s) Dmitriev"
+email = "dmi3evsv@gmail.com"
+
+[tool.taplo]
+include = ["pyproject.toml"]  # Указываем, какие файлы обрабатывать
+
+[[tool.taplo.rule]]
+include = ["pyproject.toml"]
+keys = ["dependencies", "*-dependencies"]
+[tool.taplo.rule.formatting]
+reorder_keys = true
+
 [tool.uv]
-package = true
+default-groups = []
 
 [tool.ruff]
-line-length = 100
+line-length = 88
 target-version = "py312"
 exclude = [
     "src/smile/ui/generated",
 ]
 
 [tool.ruff.lint]
-select = [ "E", "F", "I", "B", "UP", "SIM" ]
+select = ["E", "F", "I", "UP", "B"]
 ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+install_types = false
+strict = false
+warn_unused_ignores = true
+warn_return_any = true
+warn_unused_configs = true
+warn_redundant_casts = true
+no_implicit_optional = true
+check_untyped_defs = true
+pretty = true
+ignore_missing_imports = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/smile"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src/smile",
+    "/README.md",
+    "/LICENSE",
+    "/pyproject.toml",
+]
+exclude = [
+    "/demo",
+    "*.pyc",
+    "__pycache__",
+    "/.zed",
+    "/.github",
+]
+
+[project.urls]
+Repository = "https://github.com/dmi3s/smile"
+Homepage = "https://github.com/dmi3s/smile"
+Issues = "https://github.com/dmi3s/smile/issues"

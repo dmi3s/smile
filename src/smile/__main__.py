@@ -1,6 +1,5 @@
 import logging
 import sys
-from datetime import datetime as dt
 
 from smile.smile_app import SmileApp
 
@@ -22,6 +21,7 @@ def main() -> None:
 
     app = SmileApp(sys.argv)
     sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     main()

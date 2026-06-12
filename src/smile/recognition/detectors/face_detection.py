@@ -1,7 +1,5 @@
 from dataclasses import dataclass
 
-from numpy import ndarray
-
 from smile.camera.frame import Frame
 
 
@@ -22,4 +20,5 @@ class DetectedFaceBox:
 @dataclass(slots=True, frozen=True)
 class FaceDetectionResult:
     faces: tuple[DetectedFaceBox, ...]
-    small_frame_rgb: Frame
+    small_frame_rgb: Frame | None
+    frame_id: int

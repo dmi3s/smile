@@ -1,7 +1,6 @@
 import logging
 import traceback
 from pathlib import Path
-from typing import cast
 
 import cv2
 import mediapipe as mp
@@ -9,14 +8,18 @@ import numpy as np
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.tasks.python.components.containers.detections import DetectionResult
-from numpy._typing import NDArray
 from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 
 from smile.camera.frame import Frame
-from smile.recognition.detectors.face_detection import DetectedFaceBox, FaceBox, FaceDetectionResult
+from smile.recognition.detectors.face_detection import (
+    DetectedFaceBox,
+    FaceBox,
+    FaceDetectionResult,
+)
 from smile.utils.latest_value_mailbox import LatestValueMailbox
 
 logger = logging.getLogger(__name__)
+
 
 class FaceDetectionWorker(QObject):
     """
@@ -33,10 +36,9 @@ class FaceDetectionWorker(QObject):
             tuple (exctype, value, traceback.format_exc())
     """
 
-
     result = Signal(FaceDetectionResult)
     progress = Signal(str, int)
-    error = Signal(type[BaseException], BaseException, str)
+    error = Signal(type(BaseException), BaseException, str)  # красиво!
     finished = Signal(str)
 
     def __init__(self, model_path: Path) -> None:
@@ -51,13 +53,11 @@ class FaceDetectionWorker(QObject):
 
     @Slot()
     def wakeup(self):
-        thread_name : str = QThread.currentThread().objectName()
-        logger.info(f"Waking up on thread \"{thread_name}\"")
+        thread_name: str = QThread.currentThread().objectName()
+        logger.info(f'Waking up on thread "{thread_name}"')
 
         try:
-            opts = python.BaseOptions(
-                model_asset_path=str(self._model_path)
-            )
+            opts = python.BaseOptions(model_asset_path=str(self._model_path))
             options = vision.FaceDetectorOptions(
                 base_options=opts,
                 min_detection_confidence=0.5,
@@ -66,7 +66,7 @@ class FaceDetectionWorker(QObject):
             self._detector = vision.FaceDetector.create_from_options(options)
             self._mailbox.wakeup()
         except Exception as e:
-            self.error.emit(type(e), e,  traceback.format_exc())
+            self.error.emit(type(e), e, traceback.format_exc())
             logger.error(f"Init failed: {e}")
             return
 
@@ -116,13 +116,14 @@ class FaceDetectionWorker(QObject):
                         detection.bounding_box.width * x_scale,
                         detection.bounding_box.height * y_scale,
                     ),
-                    score=detection.categories[0].score
+                    score=detection.categories[0].score,
                 )
             )
 
         return FaceDetectionResult(
-            faces= tuple(faces),
-            small_frame_rgb = small_rgb,
+            faces=tuple(faces),
+            small_frame_rgb=small_rgb,
+            frame_id=small_rgb.frame_id,
         )
 
     @Slot()
@@ -133,10 +134,7 @@ class FaceDetectionWorker(QObject):
 
         try:
             small_data = cv2.resize(
-                frame.image,
-                dsize = (0, 0),
-                fx = 0.5, fy = 0.5,
-                interpolation=cv2.INTER_AREA
+                frame.image, dsize=(0, 0), fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA
             )
 
             # small_data = cast(
@@ -147,14 +145,12 @@ class FaceDetectionWorker(QObject):
             small_data.flags.writeable = False
 
             small_image_rgb = mp.Image(
-                image_format=mp.ImageFormat.SRGB,
-                data=small_data
+                image_format=mp.ImageFormat.SRGB, data=small_data
             )
 
             assert self._detector
             result = self._detector.detect_for_video(
-                small_image_rgb,
-                frame.timestamp_ns // 1_000_000
+                small_image_rgb, frame.timestamp_ns // 1_000_000
             )
 
             result = FaceDetectionWorker._construct_recognition_result(
@@ -169,7 +165,7 @@ class FaceDetectionWorker(QObject):
             )
 
         except BaseException as e:
-            exctype: type  = type(e)
+            exctype: type = type(e)
             tb: str = traceback.format_exc()
             self.error.emit(exctype, e, tb)
             logger.error(f"Processing failed: {e}\n{tb}")

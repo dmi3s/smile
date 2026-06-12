@@ -1,6 +1,6 @@
 import logging
 from types import TracebackType
-from typing import override
+from typing import cast, override
 
 from PySide6.QtCore import QEvent, QObject, QSize, Qt, Slot
 from PySide6.QtGui import QImage, QKeyEvent, QPixmap
@@ -23,6 +23,7 @@ class MainWindow(QMainWindow):
         self._face_detection_result = FaceDetectionResult(
             tuple(),
             small_frame_rgb=None,
+            frame_id=-1,
         )
         self.installEventFilter(self)
         self._camera_frame_id = 0
@@ -30,8 +31,10 @@ class MainWindow(QMainWindow):
     @override
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:
         if event.type() == QEvent.Type.KeyPress:
-            key_event = QKeyEvent(event)
-            logger.info(f"KeyPress: {key_event.key()} with modifiers= {key_event.modifiers()}")
+            key_event = cast(QKeyEvent, event)
+            logger.info(
+                f"KeyPress: {key_event.key()} with modifiers= {key_event.modifiers()}"
+            )
             if (
                 key_event.key() == Qt.Key.Key_Q
                 and key_event.modifiers() == Qt.KeyboardModifier.ControlModifier
@@ -90,14 +93,18 @@ class MainWindow(QMainWindow):
     @Slot(str)
     def camera_worker_error(self, msg: str) -> None:
         QMessageBox.critical(
-            self, "Camera Error", f"{msg}\n\nPlease check camera connection and restart."
+            self,
+            "Camera Error",
+            f"{msg}\n\nPlease check camera connection and restart.",
         )
 
     @Slot(type(BaseException), BaseException, str)
     def smile_worker_error(
         self, ex_type: type[BaseException], ex: BaseException, traceback: TracebackType
     ) -> None:
-        self.ui.statusbar.showMessage("⚠ Smile Worker Error. Please check log for details.")
+        self.ui.statusbar.showMessage(
+            "⚠ Smile Worker Error. Please check log for details."
+        )
 
     @Slot(str, int)
     def smile_worker_progress(self, thread_name: str, smile_frame_id: int) -> None:

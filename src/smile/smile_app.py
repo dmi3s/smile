@@ -1,3 +1,5 @@
+# mypy: ignore-errors
+
 import logging
 from pathlib import Path
 
@@ -11,17 +13,24 @@ from smile.windows.main_window import MainWindow
 
 logger = logging.getLogger(__name__)
 
+
 class SmileApp(QApplication):
     stop_camera = Signal()
     stop_face = Signal()
     stop_smile = Signal()
 
     _FACE_MODEL_PATH = (
-        Path(__file__).resolve().parent / "recognition" / "models" / "blaze_face_short_range.tflite"
+        Path(__file__).resolve().parent
+        / "recognition"
+        / "models"
+        / "blaze_face_short_range.tflite"
     )
 
     _LANDMARKER_MODEL_PATH = (
-        Path(__file__).resolve().parent / "recognition" / "models" / "face_landmarker.task"
+        Path(__file__).resolve().parent
+        / "recognition"
+        / "models"
+        / "face_landmarker.task"
     )
 
     def __init__(self, args: list[str]):
@@ -57,10 +66,10 @@ class SmileApp(QApplication):
 
         for th in self._threads:
             th.quit()
-            
+
         for th in self._threads:
             if not th.wait(3000):
-                logger.warning(f"Thread \"{th.objectName()}\" did not stop.")
+                logger.warning(f'Thread "{th.objectName()}" did not stop.')
 
         logger.info("Shutdown completed")
 
