@@ -69,6 +69,12 @@ exclude = [
 select = ["E", "F", "I", "UP", "B"]
 ignore = ["E501"]
 
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+
 [tool.mypy]
 python_version = "3.12"
 install_types = false
