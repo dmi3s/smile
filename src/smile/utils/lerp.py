@@ -9,6 +9,7 @@ def lerp(a: float | int, b: float | int, t: float) -> float:
     """
     return (1 - t) * a + t * b
 
+
 def inv_lerp(a: float | int, b: float | int, v: float) -> float:
     """Inverse Linear Interpolation, get the fraction between a and b on which v resides.
 
@@ -22,9 +23,11 @@ def inv_lerp(a: float | int, b: float | int, v: float) -> float:
 
 
 def remap(
-        i_min: float | int, i_max: float | int,
-        o_min: float | int, o_max: float | int,
-        v: float | int
+    i_min: float | int,
+    i_max: float | int,
+    o_min: float | int,
+    o_max: float | int,
+    v: float | int,
 ) -> float:
     """Remap values from one linear scale to another, a combination of lerp and inv_lerp.
 

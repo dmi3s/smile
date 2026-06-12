@@ -21,9 +21,9 @@ class LatestValueMailbox[T]:
         Convenience won this round.
     """
 
-    _pending_data : T | None = None
-    _running : bool = False
-    _busy : bool = False
+    _pending_data: T | None = None
+    _running: bool = False
+    _busy: bool = False
 
     def wakeup(self) -> None:
         assert not self._running
@@ -94,7 +94,7 @@ class LatestValueMailbox[T]:
         ## Enable extracting data after shutdown.
         ## Just in case.
 
-        data : T | None = self._pending_data
+        data: T | None = self._pending_data
         self._pending_data = None
 
         return data
