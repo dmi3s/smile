@@ -73,7 +73,7 @@ class SmileApp(QApplication):
 
     def _setup_face_worker(self):
         self._face_worker.result.connect(self._window.update_face_recognition)
-        self._face_worker.result.connect(self._smile_worker.new_recognition_result)
+        self._face_worker.result.connect(self._smile_worker.new_face_detection_result)
 
         self.stop_face.connect(self._face_worker.shutdown)
 

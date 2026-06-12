@@ -101,7 +101,7 @@ class FaceDetectionWorker(QObject):
         detection_result: DetectionResult,
         x_scale: float,
         y_scale: float,
-        frame_rgb: Frame,
+        small_rgb: Frame,
     ) -> FaceDetectionResult:
 
         faces: list[DetectedFaceBox] = []
@@ -122,7 +122,7 @@ class FaceDetectionWorker(QObject):
 
         return FaceDetectionResult(
             faces= tuple(faces),
-            frame_bgr= frame_rgb
+            small_frame_rgb = small_rgb,
         )
 
     @Slot()
@@ -139,28 +139,33 @@ class FaceDetectionWorker(QObject):
                 interpolation=cv2.INTER_AREA
             )
 
-            small_data = cast(
-                NDArray,
-                cv2.cvtColor(small_data, cv2.COLOR_BGR2RGB)
-            )
-            # small_data = np.ascontiguousarray(small_data[:, :, ::-1])
+            # small_data = cast(
+            #     NDArray,
+            #     cv2.cvtColor(small_data, cv2.COLOR_BGR2RGB)
+            # )
+            small_data = np.ascontiguousarray(small_data[:, :, ::-1])
+            small_data.flags.writeable = False
 
-            image = mp.Image(
+            small_image_rgb = mp.Image(
                 image_format=mp.ImageFormat.SRGB,
                 data=small_data
             )
 
             assert self._detector
             result = self._detector.detect_for_video(
-                image,
+                small_image_rgb,
                 frame.timestamp_ns // 1_000_000
             )
 
             result = FaceDetectionWorker._construct_recognition_result(
                 result,
-                1.0 / image.width,
-                1.0 / image.height,
-                frame
+                1.0 / small_image_rgb.width,
+                1.0 / small_image_rgb.height,
+                Frame.create_share(
+                    small_data,
+                    frame.frame_id,
+                    frame.timestamp_ns,
+                ),
             )
 
         except BaseException as e:

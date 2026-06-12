@@ -79,7 +79,7 @@ class SmileDetectionWorker(QObject):
         logger.info("Stopped")
 
     @Slot(FaceDetectionResult)
-    def new_recognition_result(self, rec: FaceDetectionResult) -> None:
+    def new_face_detection_result(self, rec: FaceDetectionResult) -> None:
         self._mailbox.new_data(rec)
         if self._mailbox.try_start():
             QTimer.singleShot(0, self._process_next)
@@ -90,13 +90,13 @@ class SmileDetectionWorker(QObject):
 
         assert rec is not None
         
-        if rec.frame_bgr is None:
+        if rec.small_frame_rgb is None:
             self.error.emit(
                 ValueError,
-                ValueError("rec.frame_rgb is None"),
+                ValueError("rec.small_frame_rgb is None"),
                 "_process_next()"
             )
-            logger.error("_process_next() received empty rec.frame_rgb")
+            logger.error("_process_next() received empty rec.small_frame_rgb")
             return
 
         try:
@@ -112,7 +112,7 @@ class SmileDetectionWorker(QObject):
             logger.error(f"Processing failed: {e}\n{tb}")
         else:
             self.result.emit(result)
-            self.progress.emit(QThread.currentThread().objectName(), rec.frame_bgr.frame_id)
+            self.progress.emit(QThread.currentThread().objectName(), rec.camera_frame_id)
         finally:
             if self._mailbox.complete_and_should_continue():
                 QTimer.singleShot(0, self._process_next)
