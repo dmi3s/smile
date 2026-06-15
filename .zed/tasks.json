@@ -1,0 +1,51 @@
+[
+  {
+    "label": "install dependencies",
+    "command": "uv",
+    "args": ["sync", "--all-groups", "--frozen", "--python", "3.12"],
+    "cwd": "${ZED_WORKTREE_ROOT}",
+  },
+  {
+    "label": "ruff format check",
+    "command": "uv",
+    "args": ["run", "ruff", "format", "--check", "src/smile"],
+    "cwd": "${ZED_WORKTREE_ROOT}",
+  },
+  {
+    "label": "ruff lint",
+    "command": "uv",
+    "args": ["run", "ruff", "check", "src/smile"],
+    "cwd": "${ZED_WORKTREE_ROOT}",
+  },
+  {
+    "label": "mypy",
+    "command": "uv",
+    "args": ["run", "mypy", "src/smile"],
+    "cwd": "${ZED_WORKTREE_ROOT}",
+  },
+  {
+    "label": "audit",
+    "command": "uv",
+    "args": ["audit", "--preview-features", "audit"],
+    "cwd": "${ZED_WORKTREE_ROOT}",
+  },
+  {
+    "label": "build",
+    "command": "uv",
+    "args": ["build"],
+    "cwd": "${ZED_WORKTREE_ROOT}",
+  },
+  {
+    "label": "debug current file",
+    "command": "python",
+    "args": [
+      "-m",
+      "debugpy",
+      "--listen",
+      "5678",
+      "--wait-for-client",
+      "${ZED_FILE}",
+    ],
+    "cwd": "${ZED_WORKTREE_ROOT}",
+  },
+]
