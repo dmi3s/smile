@@ -31,6 +31,7 @@ classifiers = [
 
 [dependency-groups]
 dev = [
+    "debugpy>=1.8.21",
     "mypy>=2.1.0",
     "ruff>=0.15.13",
 ]
