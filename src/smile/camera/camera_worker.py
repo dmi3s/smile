@@ -93,8 +93,8 @@ class CameraWorker(QObject):
 
         timestamp_ns = time.monotonic_ns()
 
-        frame = Frame.create_copy(bgr_frame, self._frame_count, timestamp_ns)
         bgr_frame.flags.writeable = False
+        frame = Frame.create_share(bgr_frame, self._frame_count, timestamp_ns)
 
         self._frame_count += 1
 

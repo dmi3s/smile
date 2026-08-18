@@ -64,7 +64,7 @@ class MainWindow(QMainWindow):
             height,
             bytes_per_line,
             QImage.Format.Format_BGR888,
-        ).copy()
+        )
 
         pixmap = QPixmap.fromImage(qimage)
         self.ui.video_label.setPixmap(pixmap)
