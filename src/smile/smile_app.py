@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import signal
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol, cast
 
@@ -53,6 +54,11 @@ class SmileApp(QApplication):
 
         self.aboutToQuit.connect(self.shutdown)
 
+        # Exit cleanly on SIGINT/SIGTERM (e.g. kill, service stop, terminal
+        # close) instead of leaving the process hanging without a terminal.
+        signal.signal(signal.SIGINT, self._quit_on_signal)
+        signal.signal(signal.SIGTERM, self._quit_on_signal)
+
         # Let's go
         self._window.show()
 
@@ -60,6 +66,10 @@ class SmileApp(QApplication):
             th.start()
 
         logger.info("Initialization completed")
+
+    def _quit_on_signal(self, signum: int, _frame: object) -> None:
+        logger.warning(f"Received signal {signum}, shutting down")
+        self.quit()
 
     @Slot()
     def shutdown(self) -> None:
