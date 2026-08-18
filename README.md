@@ -1,154 +1,168 @@
 ![logo](src/smile/resources/icons/smile-lol.png)
 # Smile
 
-Realtime face detection playground built with Python, Qt and MediaPipe.
+Realtime-площадка для детекции лиц, построенная на Python, Qt и MediaPipe.
 
-The project captures webcam frames, runs face detection in a separate worker thread and renders detection overlays in a PySide6 UI.
+Проект захватывает кадры с веб-камеры, в отдельных потоках-воркерах выполняет детекцию лица и улыбки и рисует оверлей в UI на PySide6.
 
-Current status:
+Текущее состояние:
 
-- realtime webcam preview
-- face detection
-- multi-face support
-- overlay rendering
-- threaded processing pipeline
-- normalized face coordinates
-- graceful thread shutdown
+- realtime-превью с веб-камеры
+- детекция лиц (мульти-лицо)
+- детекция улыбки (скор 0..1 + эмодзи-статус)
+- оверлей-рендеринг
+- конвейер из трёх потоков
+- нормализованные координаты лиц
+- корректное завершение потоков
 
-Planned:
+Планируется:
 
-- smile detection
-- face smoothing/tracking
-- camera settings UI
-- FPS metrics
-- camera reconnect handling
+- сглаживание/трекинг лиц
+- UI настроек камеры
+- метрики FPS
+- обработка переподключения камеры
 
 ---
 
-## Tech Stack
+## Технологии
 
 - Python 3.12
 - PySide6 / Qt6
 - OpenCV
-- MediaPipe Tasks
+- MediaPipe Tasks (FaceDetector + FaceLandmarker)
 - NumPy
 
-Tooling:
+Инструменты:
 
 - uv
 - just
-- PyCharm / Zed / Helix
-- zsh + zellij
+- pytest (smoke-тесты)
+- GitHub Actions (CI)
+- Git LFS (модели)
 
 ---
 
-## Features
+## Возможности
 
-- Realtime webcam capture
-- Face detection using MediaPipe
-- Detection worker thread
-- UI-thread-safe rendering
-- Normalized bounding boxes
-- Overlay rendering using QPainter
-- Frame dropping strategy for low latency
+- Realtime-захват с веб-камеры
+- Детекция лиц через MediaPipe
+- Детекция улыбки через FaceLandmarker: `openness` (раскрытие рта) + `spread` (ширина рта/межглазье), калиброванные пороги
+- Три рабочих потока (camera → face → smile) с общим mailbox-механизмом
+- Безопасный для UI-потока рендеринг через QPainter
+- Нормализованные bounding box'ы (0..1)
+- Стратегия сброса устаревших кадров для низкой задержки
+- Статус улыбки: `🖖` нет лица / `😐` нейтрально / `😊` улыбка / `😄` широкая улыбка
+- Smoke-тесты (offscreen Qt)
 
 ---
 
-## Project Structure
+## Структура проекта
 
 ```text
 src/smile/
 ├── camera/          # CameraWorker, Frame
-├── recognition/     # face/smile detection workers + models
+├── recognition/     # воркеры детекции лица/улыбки + модели (LFS)
 │   └── detectors/
 ├── ui/              # main_window.ui + generated/
 ├── widgets/         # OverlayLabel
 ├── windows/         # MainWindow
 ├── utils/           # LatestValueMailbox, lerp, smooth, convert
-├── resources/       # icons, images, qrc
-└── smile_app.py     # app + thread orchestration
+├── resources/       # иконки, изображения, qrc
+└── smile_app.py     # приложение + оркестрация потоков
+
+smokes/              # pytest smoke-тесты (offscreen)
 ```
 
 ---
 
-## Installation
+## Установка
 
-### Requirements
+### Требования
 
 - Python 3.12+
 - uv
 - just
 
-Install uv:
+Установка uv:
 
 https://docs.astral.sh/uv/
 
-Insstall just:
+Установка just:
 
 https://github.com/casey/just
 
 ---
 
-## Setup
+## Настройка
 
-Clone the repository:
+Клонирование:
 
 ```bash
-git clone https://github.com/yourname/smile.git
+git clone git@github.com:dmi3s/smile.git
 cd smile
 ```
 
-Install dependencies:
+Установка зависимостей:
 
 ```bash
 uv sync
 ```
 
----
-
-## Run
-
-Using just:
-
-First time:
+Модели (`blaze_face_short_range.tflite`, `face_landmarker.task`) хранятся в Git LFS и подтягиваются автоматически при клонировании, если LFS установлен:
 
 ```bash
-just bootstrap
+git lfs install
 ```
 
-Then
+---
+
+## Запуск
+
+Через just:
 
 ```bash
+just bootstrap   # первый раз
 just run
 ```
 
-Or directly:
+Или напрямую:
 
 ```bash
 uv run smile
 ```
 
+Управление:
+
+- `Ctrl+Q` — выход
+
 ---
 
-## Development
+## Разработка
 
-Generate Qt UI files:
+Генерация UI-файлов Qt:
 
 ```bash
 just gen-ui
 ```
 
-Generate Qt resources:
+Генерация ресурсов Qt:
 
 ```bash
 just gen-resources
 ```
 
+Проверка кода:
+
+```bash
+just check            # ruff + mypy
+uv run pytest smokes  # smoke-тесты
+```
+
 ---
 
-## Architecture Notes
+## Архитектура
 
-The application uses an asynchronous realtime pipeline:
+Приложение использует асинхронный realtime-конвейер из трёх потоков:
 
 ```text
                 ┌────────────────────┐
@@ -168,57 +182,68 @@ The application uses an asynchronous realtime pipeline:
                             │   Smile Detection Worker │
                             │ (mailbox: latest result) │
                             └─────────────┬────────────┘
-                                          │ progress
+                                          │ result
                                           ▼
                                    Qt Main Thread
 ```
 
-Key ideas:
+Ключевые идеи:
 
-- camera capture never blocks on detection
-- rendering and face detection run in parallel
-- each worker processes only the latest available input
-- stale frames are dropped intentionally to reduce latency
-- face coordinates are stored normalized (`0..1`)
-- all Qt painting happens in the main UI thread
+- захват камеры никогда не блокируется детекцией
+- рендеринг и детекция лица выполняются параллельно
+- каждый воркер обрабатывает только последний доступный вход
+- устаревшие кадры намеренно сбрасываются для снижения задержки
+- координаты лиц хранятся нормализованными (`0..1`)
+- весь рендеринг Qt происходит в главном UI-потоке
+
+### Детекция улыбки
+
+Смайл-воркер прогоняет кадр через `FaceLandmarker` (478 точек) и считает две метрики по ландмаркам рта:
+
+- `openness` = высота рта / ширина рта — рот открывается при улыбке
+- `spread` = ширина рта / межглазное расстояние — уголки рта разъезжаются
+
+Скор `max(openness, spread)` ∈ [0, 1], пороги откалиброваны по реальным данным с камеры. Обе метрики возвращаются к нейтральным значениям, поэтому статус корректно «гаснет», когда улыбка пропадает.
+
+Реперные точки — индексы ландмарков MediaPipe FaceMesh: `13`/`14` (центры губ), `61`/`291` (углы рта), `33`/`263` (внешние углы глаз).
 
 ---
 
-## Performance
+## Производительность
 
-Current performance on Linux desktop:
+На Linux-десктопе:
 
-- ~30 FPS webcam preview
-- realtime face detection
-- CPU inference via XNNPACK
+- ~20-30 FPS превью с веб-камеры
+- realtime-детекция лица и улыбки
+- инференс на CPU через XNNPACK
 
-Actual performance depends on:
+Фактическая производительность зависит от:
 
-- webcam resolution
+- разрешения веб-камеры
 - CPU
-- detector scale factor
-- rendering backend
+- масштаба кадра для детекции
+- бэкенда рендеринга
 
 ---
 
-## Notes
+## Заметки
 
-This project is primarily an experiment:
+Проект — в первую очередь эксперимент:
 
-- learning PySide6
-- exploring realtime CV pipelines
-- comparing Python vs C++ ergonomics for desktop CV applications
+- изучение PySide6
+- исследование realtime CV-конвейеров
+- сравнение эргономики Python и C++ для десктопных CV-приложений
 
-The current implementation prioritizes:
+Приоритеты текущей реализации:
 
-- simplicity
-- architecture clarity
-- development speed
+- простота
+- ясность архитектуры
+- скорость разработки
 
-over premature optimization.
+над преждевременной оптимизацией.
 
 ---
 
-## License
+## Лицензия
 
 MIT
