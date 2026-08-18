@@ -36,6 +36,7 @@ class SmileFeatures:
     openness: float
     spread: float
     corner_rise: float
+    corner_lift: float
 
 
 @dataclass(slots=True, frozen=True)
@@ -67,7 +68,15 @@ def mouth_features(landmarks: Sequence[Point]) -> SmileFeatures | None:
     corners_y = (left.y + right.y) / 2.0
     corner_rise = (eye_y - corners_y) / eye_width  # grows as corners pull up
 
-    return SmileFeatures(openness=openness, spread=spread, corner_rise=corner_rise)
+    lips_y = (upper.y + lower.y) / 2.0
+    corner_lift = (lips_y - corners_y) / width  # >0 when corners above lip line
+
+    return SmileFeatures(
+        openness=openness,
+        spread=spread,
+        corner_rise=corner_rise,
+        corner_lift=corner_lift,
+    )
 
 
 def smile_score(landmarks: Sequence[Point]) -> float:
