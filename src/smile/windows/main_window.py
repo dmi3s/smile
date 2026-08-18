@@ -1,5 +1,4 @@
 import logging
-from types import TracebackType
 from typing import cast, override
 
 from PySide6.QtCore import QEvent, QObject, QSize, Qt, Slot
@@ -100,7 +99,7 @@ class MainWindow(QMainWindow):
 
     @Slot(type(BaseException), BaseException, str)
     def smile_worker_error(
-        self, ex_type: type[BaseException], ex: BaseException, traceback: TracebackType
+        self, ex_type: type[BaseException], ex: BaseException, traceback: str
     ) -> None:
         self.ui.statusbar.showMessage(
             "⚠ Smile Worker Error. Please check log for details."

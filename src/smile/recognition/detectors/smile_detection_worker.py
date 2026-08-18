@@ -1,10 +1,10 @@
 import logging
+import time
 import traceback
 from pathlib import Path
 
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-from PySide6 import QtTest
 from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 
 from smile.recognition.detectors.face_detection import FaceDetectionResult
@@ -23,8 +23,6 @@ class SmileDetectionWorker(QObject):
             object data returned from processing: SmileDetectionResult
         progress
             (str, frame_id)
-        finished
-            str thread name
         error
             (exctype, value, traceback.format_exc())
     """
@@ -32,7 +30,6 @@ class SmileDetectionWorker(QObject):
     result = Signal(SmileDetectionResult)
     error = Signal(type(BaseException), BaseException, str)
     progress = Signal(str, int)
-    finished = Signal(str)
 
     def __init__(self, model_path: Path):
         super().__init__()
@@ -73,7 +70,6 @@ class SmileDetectionWorker(QObject):
     def shutdown(self) -> None:
         self._mailbox.shutdown()
         self._cleanup()
-        self.finished.emit(QThread.currentThread().objectName())
         logger.info("Stopped")
 
     @Slot(FaceDetectionResult)
@@ -98,8 +94,7 @@ class SmileDetectionWorker(QObject):
         try:
             # SmileResult = RecognitionResult
             # ToDo: Replace this dummy code to real one
-            # time.sleep(0.1)
-            QtTest.QTest.qWait(69)
+            time.sleep(0.069)
             result: SmileDetectionResult = rec
         except BaseException as e:
             exctype: type = type(e)

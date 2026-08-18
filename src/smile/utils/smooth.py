@@ -1,10 +1,9 @@
-# mypy: ignore-errors
-
 from collections.abc import Callable
+from typing import Any
 
 
 class ExponentialJitterSmoother:
-    def __init__(self, alpha: float, blend_func: Callable = None):
+    def __init__(self, alpha: float, blend_func: Callable[..., Any] | None = None):
         if not 0.0 < alpha <= 1.0:
             raise ValueError("alpha must be in (0, 1]")
         self.alpha = alpha

@@ -35,9 +35,7 @@ class CameraWorker(QObject):
 
         self._cap = cv2.VideoCapture(0)
 
-        assert self._cap is not None
-
-        if not self._cap.isOpened():
+        if self._cap is None or not self._cap.isOpened():
             logger.error("Cannot open default camera")
             self.camera_error.emit("Cannot open default camera")
             return
@@ -48,9 +46,13 @@ class CameraWorker(QObject):
 
         logger.info("Started")
 
-    def _setup_camera(self):
-        assert self._cap is not None
-        assert self._cap.isOpened()
+    def _setup_camera(self) -> None:
+        if self._cap is None:
+            logger.error("Camera capture is not initialized")
+            return
+        if not self._cap.isOpened():
+            logger.error("Camera is not opened")
+            return
 
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, 800)
         self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 448)
@@ -62,15 +64,22 @@ class CameraWorker(QObject):
         backend: str = self._cap.getBackendName()
         logger.info(f"Camera mode: {w}x{h} @ {fps} ({backend=})")
 
-        assert 0 < fps <= 1000
-        assert self._timer is not None
+        if not 0 < fps <= 1000:
+            logger.warning(f"Invalid camera FPS: {fps}; falling back to 20")
+            fps = 20
+
+        if self._timer is None:
+            logger.error("Timer is not initialized")
+            return
+
         self._timer.start(1000 // fps)
 
     @Slot()
     def _capture_frame(self) -> None:
         if self._stopping:
             return
-        assert self._cap is not None
+        if self._cap is None:
+            return
 
         ret, bgr_frame = self._cap.read()
 
@@ -80,12 +89,6 @@ class CameraWorker(QObject):
             return
 
         timestamp_ns = time.monotonic_ns()
-        # rgb_image = cast(
-        #     NDArray,
-        #     cv2.cvtColor(bgr_frame, cv2.COLOR_BGR2RGB)
-        # )
-        # or
-        # rgb_image = np.ascontiguousarray(bgr_frame[:, :, ::-1])
 
         frame = Frame.create_copy(bgr_frame, self._frame_count, timestamp_ns)
         bgr_frame.flags.writeable = False

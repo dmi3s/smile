@@ -30,8 +30,6 @@ class FaceDetectionWorker(QObject):
             object data returned from processing: FaceDetectionResult
         progress
             tuple (str, frame_id)
-        finished
-            str thread name
         error
             tuple (exctype, value, traceback.format_exc())
     """
@@ -39,7 +37,6 @@ class FaceDetectionWorker(QObject):
     result = Signal(FaceDetectionResult)
     progress = Signal(str, int)
     error = Signal(type(BaseException), BaseException, str)  # красиво!
-    finished = Signal(str)
 
     def __init__(self, model_path: Path) -> None:
         super().__init__()
@@ -82,7 +79,6 @@ class FaceDetectionWorker(QObject):
     def shutdown(self):
         self._mailbox.shutdown()
         self._cleanup()
-        self.finished.emit(QThread.currentThread().objectName())
         logger.info("Stopped")
 
     @Slot(Frame)
@@ -137,10 +133,6 @@ class FaceDetectionWorker(QObject):
                 frame.image, dsize=(0, 0), fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA
             )
 
-            # small_data = cast(
-            #     NDArray,
-            #     cv2.cvtColor(small_data, cv2.COLOR_BGR2RGB)
-            # )
             small_data = np.ascontiguousarray(small_data[:, :, ::-1])
             small_data.flags.writeable = False
 

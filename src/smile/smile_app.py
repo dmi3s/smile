@@ -1,7 +1,8 @@
-# mypy: ignore-errors
+from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING, Protocol, cast
 
 from PySide6.QtCore import QCoreApplication, QObject, QThread, Signal, Slot
 from PySide6.QtWidgets import QApplication
@@ -12,6 +13,12 @@ from smile.recognition.detectors.smile_detection_worker import SmileDetectionWor
 from smile.windows.main_window import MainWindow
 
 logger = logging.getLogger(__name__)
+
+
+if TYPE_CHECKING:
+
+    class _Worker(Protocol):
+        def wakeup(self) -> None: ...
 
 
 class SmileApp(QApplication):
@@ -106,10 +113,10 @@ class SmileApp(QApplication):
         self._window = MainWindow()
 
     @staticmethod
-    def _create_working_thread(worker: QObject, name: str) -> QThread:
+    def _create_working_thread(worker: _Worker, name: str) -> QThread:
         th = QThread(QThread.currentThread())
         th.setObjectName(name)
         th.started.connect(worker.wakeup)
-        th.finished.connect(worker.deleteLater)
-        worker.moveToThread(th)
+        th.finished.connect(cast(QObject, worker).deleteLater)
+        cast(QObject, worker).moveToThread(th)
         return th
