@@ -1,5 +1,6 @@
 import logging
 import sys
+from datetime import date
 
 from smile.smile_app import SmileApp
 
@@ -11,7 +12,7 @@ def _setup_logging(log_level: int | str | None) -> None:
         datefmt="%Y-%m-%d %H:%M:%S",
         handlers=[
             logging.StreamHandler(),  # В консоль
-            # logging.FileHandler(f"logs/smile-{dt.today()}.log"),  # В файл
+            logging.FileHandler(f"logs/smile-{date.today()}.log"),  # В файл
         ],
     )
 

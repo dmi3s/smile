@@ -10,13 +10,14 @@ logger = logging.getLogger(__name__)
 
 
 class CameraWorker(QObject):
+    CAMERA_INDEX: int = 0
+    FRAME_WIDTH: int = 800
+    FRAME_HEIGHT: int = 448
+    FRAME_FPS: int = 20
+
     frame_ready = Signal(Frame)
     camera_error = Signal(str)
     camera_started = Signal()
-    # ToDo:
-    # stop_camera = Signal()
-    # fps_updated = Signal()
-    # camera_disconnected = Signal()
 
     def __init__(self):
         super().__init__()
@@ -33,7 +34,7 @@ class CameraWorker(QObject):
         thread_name: str = QThread.currentThread().objectName()
         logger.info(f'Waking up on thread "{thread_name}"')
 
-        self._cap = cv2.VideoCapture(0)
+        self._cap = cv2.VideoCapture(CameraWorker.CAMERA_INDEX)
 
         if self._cap is None or not self._cap.isOpened():
             logger.error("Cannot open default camera")
@@ -54,9 +55,9 @@ class CameraWorker(QObject):
             logger.error("Camera is not opened")
             return
 
-        self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, 800)
-        self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 448)
-        self._cap.set(cv2.CAP_PROP_FPS, 20)
+        self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, CameraWorker.FRAME_WIDTH)
+        self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CameraWorker.FRAME_HEIGHT)
+        self._cap.set(cv2.CAP_PROP_FPS, CameraWorker.FRAME_FPS)
         fps: int = int(self._cap.get(cv2.CAP_PROP_FPS))
 
         w = int(self._cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -65,8 +66,10 @@ class CameraWorker(QObject):
         logger.info(f"Camera mode: {w}x{h} @ {fps} ({backend=})")
 
         if not 0 < fps <= 1000:
-            logger.warning(f"Invalid camera FPS: {fps}; falling back to 20")
-            fps = 20
+            logger.warning(
+                f"Invalid camera FPS: {fps}; falling back to {CameraWorker.FRAME_FPS}"
+            )
+            fps = CameraWorker.FRAME_FPS
 
         if self._timer is None:
             logger.error("Timer is not initialized")

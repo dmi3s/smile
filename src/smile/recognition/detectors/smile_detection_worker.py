@@ -34,7 +34,7 @@ class SmileDetectionWorker(QObject):
     def __init__(self, model_path: Path):
         super().__init__()
         self._model_path = model_path
-        self._detector = None
+        self._detector: vision.FaceLandmarker | None = None
         self._mailbox = LatestValueMailbox[FaceDetectionResult]()
 
         thread_name: str = QThread.currentThread().objectName()
@@ -84,14 +84,16 @@ class SmileDetectionWorker(QObject):
 
         assert rec is not None
 
-        if rec.small_frame_rgb is None:
-            self.error.emit(
-                ValueError, ValueError("rec.small_frame_rgb is None"), "_process_next()"
-            )
-            logger.error("_process_next() received empty rec.small_frame_rgb")
-            return
-
         try:
+            if rec.small_frame_rgb is None:
+                self.error.emit(
+                    ValueError,
+                    ValueError("rec.small_frame_rgb is None"),
+                    "_process_next()",
+                )
+                logger.error("_process_next() received empty rec.small_frame_rgb")
+                return
+
             # SmileResult = RecognitionResult
             # ToDo: Replace this dummy code to real one
             time.sleep(0.069)
