@@ -6,6 +6,7 @@ from smile.recognition.detectors.face_detection import (
     FaceBox,
     FaceDetectionResult,
 )
+from smile.recognition.detectors.smile_detection import SmileDetectionResult
 from smile.windows.main_window import MainWindow
 
 
@@ -43,3 +44,25 @@ def test_update_frame_pipeline(qapp):
         window.update_frame(_frame(2 + i, 1_050_000_000 + (2 + i) * 10_000_000))
 
     qapp.processEvents()
+
+
+def test_smile_status_updates_emoji(qapp):
+    window = MainWindow()
+    window.show()
+
+    window.update_smile_status(SmileDetectionResult(smile_scores=(), frame_id=0))
+    assert window.ui.smile_label.text() == "🖖"
+
+    window.update_smile_status(SmileDetectionResult(smile_scores=(0.0,), frame_id=1))
+    assert window.ui.smile_label.text() == "😐"
+
+    window.update_smile_status(SmileDetectionResult(smile_scores=(0.4,), frame_id=2))
+    assert window.ui.smile_label.text() == "😊"
+
+    window.update_smile_status(SmileDetectionResult(smile_scores=(0.8,), frame_id=3))
+    assert window.ui.smile_label.text() == "😄"
+
+    window.update_smile_status(
+        SmileDetectionResult(smile_scores=(0.2, 0.8), frame_id=4)
+    )
+    assert window.ui.smile_label.text() == "😄"  # best face wins

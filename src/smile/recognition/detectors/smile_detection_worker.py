@@ -1,14 +1,17 @@
 import logging
-import time
 import traceback
 from pathlib import Path
 
+import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 
 from smile.recognition.detectors.face_detection import FaceDetectionResult
-from smile.recognition.detectors.smile_detection import SmileDetectionResult
+from smile.recognition.detectors.smile_detection import (
+    SmileDetectionResult,
+    smile_score,
+)
 from smile.utils.latest_value_mailbox import LatestValueMailbox
 
 logger = logging.getLogger(__name__)
@@ -94,10 +97,20 @@ class SmileDetectionWorker(QObject):
                 logger.error("_process_next() received empty rec.small_frame_rgb")
                 return
 
-            # SmileResult = RecognitionResult
-            # ToDo: Replace this dummy code to real one
-            time.sleep(0.069)
-            result: SmileDetectionResult = rec
+            assert self._detector is not None
+
+            image = mp.Image(
+                image_format=mp.ImageFormat.SRGB,
+                data=rec.small_frame_rgb.image,
+            )
+            landmarker_result = self._detector.detect_for_video(
+                image,
+                rec.small_frame_rgb.timestamp_ns // 1_000_000,
+            )
+            scores = tuple(
+                smile_score(face) for face in landmarker_result.face_landmarks
+            )
+            result = SmileDetectionResult(smile_scores=scores, frame_id=rec.frame_id)
         except BaseException as e:
             exctype: type = type(e)
             tb: str = traceback.format_exc()

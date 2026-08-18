@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 
 from smile.camera.frame import Frame
 from smile.recognition.detectors.face_detection import FaceDetectionResult
+from smile.recognition.detectors.smile_detection import SmileDetectionResult
 from smile.ui.generated.ui_main_window import Ui_MainWindow
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,6 @@ class MainWindow(QMainWindow):
             frame_id=-1,
         )
         self.installEventFilter(self)
-        self._camera_frame_id = 0
 
     @override
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:
@@ -53,8 +53,6 @@ class MainWindow(QMainWindow):
             self.ui.video_label.setMinimumSize(QSize(width, height))
             logger.info(f"Frame size: {width}x{height}")
 
-        self._camera_frame_id = frame.frame_id
-
         self.ui.video_label.set_frame(
             image,
             self._face_detection_result.faces,
@@ -65,10 +63,23 @@ class MainWindow(QMainWindow):
     @Slot(FaceDetectionResult)
     def update_face_recognition(self, detection_result: FaceDetectionResult) -> None:
         self._face_detection_result = detection_result
-        if len(detection_result.faces):
-            self.ui.smile_label.setText("😐")
+
+    @Slot(SmileDetectionResult)
+    def update_smile_status(self, smile_status: SmileDetectionResult) -> None:
+        logger.debug(f"update_smile_status: {smile_status.smile_scores}")
+        if not smile_status.smile_scores:
+            self.ui.smile_label.setText("🖖")
+            self.ui.statusbar.showMessage("🖖 no face")
+            return
+        best = max(smile_status.smile_scores)
+        if best >= 0.60:
+            emoji = "😄"
+        elif best >= 0.20:
+            emoji = "😊"
         else:
-            self.ui.smile_label.setText("🖖")  # ("👾")
+            emoji = "😐"
+        self.ui.smile_label.setText(emoji)
+        self.ui.statusbar.showMessage(f"{emoji} smile={best:.2f}")
 
     @Slot(str)
     def camera_worker_error(self, msg: str) -> None:
@@ -89,6 +100,6 @@ class MainWindow(QMainWindow):
     @Slot(str, int)
     def smile_worker_progress(self, thread_name: str, smile_frame_id: int) -> None:
         # ToDo: Display diff with camera.frame_id?.. Have to think.
-        self.ui.statusbar.showMessage(
-            f"Smile Worker delay (in frames): {self._camera_frame_id - smile_frame_id}"
-        )
+        # Deliberately does not touch the status bar: it would overwrite the
+        # smile score shown by update_smile_status.
+        pass
