@@ -1,24 +1,19 @@
 #direction: right
 shape: sequence_diagram
 cw: Camera Worker
-rw: Recognition Worker
+fw: Face Detection Worker
+sw: Smile Detection Worker
 gui: Main Window
 
-loop Continuous Capture \& Inference Pipeline {
-    cw -> rw: update_frame
-    rw -> rw: store_last_frame
-    rw -> rw: process_last_frame
-    cw -> gui: update_frame
-    gui -> gui: redraw
-
-    cw -> rw: update_frame
-    rw -> rw: store_last_frame
-    cw -> gui: update_frame
-    gui -> gui: redraw
-
-    cw -> rw: update_frame
-    rw -> rw: store_last_frame
-    rw -> gui: update_detection
-    gui -> gui: redraw
-    rw -> rw: process_last_frame
+loop Continuous Pipeline (new data overwrites pending) {
+    cw -> gui: frame_ready (update_frame)
+    cw -> fw: frame_ready (new_frame)
+    fw -> fw: mailbox -> keep latest frame
+    fw -> fw: detect_for_video (small RGB, 0.5x)
+    fw -> gui: result (update_face_recognition)
+    fw -> sw: result (new_face_detection_result)
+    sw -> sw: mailbox -> keep latest result
+    sw -> sw: process (stub, time.sleep)
+    sw -> gui: progress (frame delay)
+    gui -> gui: redraw (overlay + FPS)
 }

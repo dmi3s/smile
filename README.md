@@ -57,13 +57,16 @@ Tooling:
 ## Project Structure
 
 ```text
-smile/
-├── camera/
-├── recognition/
-├── ui/
-├── model/
-├── resources/
-└── smile_app.py
+src/smile/
+├── camera/          # CameraWorker, Frame
+├── recognition/     # face/smile detection workers + models
+│   └── detectors/
+├── ui/              # main_window.ui + generated/
+├── widgets/         # OverlayLabel
+├── windows/         # MainWindow
+├── utils/           # LatestValueMailbox, lerp, smooth, convert
+├── resources/       # icons, images, qrc
+└── smile_app.py     # app + thread orchestration
 ```
 
 ---
@@ -151,30 +154,30 @@ The application uses an asynchronous realtime pipeline:
                 ┌────────────────────┐
                 │   Camera Worker    │
                 └─────────┬──────────┘
-                          │
-                          ▼
-                 Latest Video Frame
-                          │
-          ┌───────────────┴───────────────┐
-          │                               │
-          ▼                               ▼
-┌────────────────────┐         ┌────────────────────┐
-│   UI Rendering     │         │ Recognition Worker │
-│   (Qt Main Thread) │         │  Face Detection    │
-└────────────────────┘         └─────────┬──────────┘
-                                         │
-                                         ▼
-                              Recognition Result
-                                         │
-                                         ▼
-                              Qt Main Thread State
+                          │ frame_ready
+          ┌───────────────┴────────────────┐
+          │                                │
+          ▼                                ▼
+┌────────────────────┐        ┌──────────────────────────┐
+│   UI Rendering     │        │   Face Detection Worker  │
+│   (Qt Main Thread) │        │   (mailbox: latest frame)│
+└────────────────────┘        └─────────────┬────────────┘
+                                            │ result
+                                            ▼
+                            ┌──────────────────────────┐
+                            │   Smile Detection Worker │
+                            │ (mailbox: latest result) │
+                            └─────────────┬────────────┘
+                                          │ progress
+                                          ▼
+                                   Qt Main Thread
 ```
 
 Key ideas:
 
 - camera capture never blocks on detection
 - rendering and face detection run in parallel
-- the recognition worker processes only the latest available frame
+- each worker processes only the latest available input
 - stale frames are dropped intentionally to reduce latency
 - face coordinates are stored normalized (`0..1`)
 - all Qt painting happens in the main UI thread
