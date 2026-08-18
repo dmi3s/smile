@@ -57,7 +57,7 @@ keys = ["dependencies", "*-dependencies"]
 reorder_keys = true
 
 [tool.uv]
-default-groups = []
+default-groups = ["dev"]
 
 [tool.ruff]
 line-length = 88
