@@ -33,6 +33,12 @@ gen-resources:
 
 generate: gen-ui gen-resources
 
+# 🧹 Lint, format and typecheck
+check:
+    uv run ruff check src
+    uv run ruff format --check src/smile
+    uv run mypy src/smile
+
 run:
     uv run smile
 
