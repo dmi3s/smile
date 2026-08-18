@@ -27,7 +27,9 @@ def test_update_frame_pipeline(qapp):
         DetectedFaceBox(bbox=FaceBox(0.5, 0.3, 0.2, 0.3), score=0.6),
     )
     window.update_face_recognition(
-        FaceDetectionResult(faces=faces, small_frame_rgb=_frame(0, 1_000_000_000), frame_id=0)
+        FaceDetectionResult(
+            faces=faces, small_frame_rgb=_frame(0, 1_000_000_000), frame_id=0
+        )
     )
 
     window.update_frame(_frame(1, 1_050_000_000))

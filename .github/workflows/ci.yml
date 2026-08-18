@@ -21,14 +21,23 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-groups --frozen --python 3.12
 
+      - name: Generate Qt resources and UI
+        run: |
+          uv run pyside6-rcc src/smile/resources/resources.qrc -o src/smile/ui/generated/resources_rc.py
+          uv run pyside6-uic src/smile/ui/main_window.ui -o src/smile/ui/generated/ui_main_window.py
+          sed -i 's/^import resources_rc$/from . import resources_rc/' src/smile/ui/generated/ui_main_window.py
+
       - name: Ruff format
-        run: uv run ruff format --check src/smile
+        run: uv run ruff format --check src/smile smokes
 
       - name: Ruff lint
-        run: uv run ruff check src/smile
+        run: uv run ruff check src/smile smokes
 
       - name: Mypy type checking
         run: uv run mypy src/smile
+
+      - name: Tests
+        run: uv run pytest smokes
 
       - name: Audit
         run: uv audit --preview-features audit

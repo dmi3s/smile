@@ -59,6 +59,7 @@ reorder_keys = true
 
 [tool.uv]
 default-groups = ["dev"]
+override-dependencies = ["pillow>=12.3.0"]
 
 [tool.ruff]
 line-length = 88
@@ -92,6 +93,7 @@ ignore_missing_imports = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/smile"]
+force-include = { "src/smile/ui/generated" = "smile/ui/generated" }
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -100,6 +102,7 @@ include = [
     "/LICENSE",
     "/pyproject.toml",
 ]
+force-include = { "src/smile/ui/generated" = "src/smile/ui/generated" }
 exclude = [
     "/demo",
     "*.pyc",
