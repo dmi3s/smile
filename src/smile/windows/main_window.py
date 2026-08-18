@@ -9,6 +9,7 @@ from smile.camera.frame import Frame
 from smile.recognition.detectors.face_detection import FaceDetectionResult
 from smile.recognition.detectors.smile_detection import SmileDetectionResult
 from smile.ui.generated.ui_main_window import Ui_MainWindow
+from smile.utils.smooth import ExponentialJitterSmoother
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ class MainWindow(QMainWindow):
             frame_id=-1,
         )
         self.installEventFilter(self)
+        self._smile_smoother = ExponentialJitterSmoother(alpha=0.3)
 
     @override
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:
@@ -68,10 +70,11 @@ class MainWindow(QMainWindow):
     def update_smile_status(self, smile_status: SmileDetectionResult) -> None:
         logger.debug(f"update_smile_status: {smile_status.smile_scores}")
         if not smile_status.smile_scores:
+            self._smile_smoother.reset()
             self.ui.smile_label.setText("🖖")
             self.ui.statusbar.showMessage("🖖 no face")
             return
-        best = max(smile_status.smile_scores)
+        best = self._smile_smoother.update(max(smile_status.smile_scores))
         if best >= 0.60:
             emoji = "😄"
         elif best >= 0.20:

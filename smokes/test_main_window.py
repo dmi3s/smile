@@ -53,16 +53,54 @@ def test_smile_status_updates_emoji(qapp):
     window.update_smile_status(SmileDetectionResult(smile_scores=(), frame_id=0))
     assert window.ui.smile_label.text() == "🖖"
 
-    window.update_smile_status(SmileDetectionResult(smile_scores=(0.0,), frame_id=1))
+    for i in range(5):
+        window.update_smile_status(
+            SmileDetectionResult(smile_scores=(0.0,), frame_id=1 + i)
+        )
     assert window.ui.smile_label.text() == "😐"
 
-    window.update_smile_status(SmileDetectionResult(smile_scores=(0.4,), frame_id=2))
+    for i in range(10):
+        window.update_smile_status(
+            SmileDetectionResult(smile_scores=(0.4,), frame_id=10 + i)
+        )
     assert window.ui.smile_label.text() == "😊"
 
-    window.update_smile_status(SmileDetectionResult(smile_scores=(0.8,), frame_id=3))
+    for i in range(10):
+        window.update_smile_status(
+            SmileDetectionResult(smile_scores=(0.8,), frame_id=20 + i)
+        )
     assert window.ui.smile_label.text() == "😄"
 
-    window.update_smile_status(
-        SmileDetectionResult(smile_scores=(0.2, 0.8), frame_id=4)
-    )
-    assert window.ui.smile_label.text() == "😄"  # best face wins
+
+def test_smile_status_smoothing_holds_then_decays(qapp):
+    window = MainWindow()
+    window.show()
+
+    window.update_smile_status(SmileDetectionResult(smile_scores=(0.9,), frame_id=1))
+    assert window.ui.smile_label.text() == "😄"
+
+    # a single neutral frame must not flicker the emoji back
+    window.update_smile_status(SmileDetectionResult(smile_scores=(0.0,), frame_id=2))
+    assert window.ui.smile_label.text() == "😄"
+
+    # sustained neutral frames decay the smoothed score below the threshold
+    for i in range(10):
+        window.update_smile_status(
+            SmileDetectionResult(smile_scores=(0.0,), frame_id=3 + i)
+        )
+    assert window.ui.smile_label.text() == "😐"
+
+
+def test_smile_status_resets_on_no_face(qapp):
+    window = MainWindow()
+    window.show()
+
+    for i in range(5):
+        window.update_smile_status(
+            SmileDetectionResult(smile_scores=(0.8,), frame_id=1 + i)
+        )
+    assert window.ui.smile_label.text() == "😄"
+
+    # face lost -> smoother resets, emoji goes back to no-face state immediately
+    window.update_smile_status(SmileDetectionResult(smile_scores=(), frame_id=6))
+    assert window.ui.smile_label.text() == "🖖"
