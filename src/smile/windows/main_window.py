@@ -7,7 +7,6 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 
 from smile.camera.frame import Frame
 from smile.recognition.detectors.face_detection import FaceDetectionResult
-from smile.recognition.detectors.smile_detection import SmileDetectionResult
 from smile.ui.generated.ui_main_window import Ui_MainWindow
 from smile.utils.convert import ColoredQRect, faces_to_qrects_with_colors
 
@@ -84,10 +83,6 @@ class MainWindow(QMainWindow):
             self.ui.smile_label.setText("😐")
         else:
             self.ui.smile_label.setText("🖖")  # ("👾")
-
-    @Slot(FaceDetectionResult)
-    def update_smile_status(self, smile_status: SmileDetectionResult) -> None:
-        pass
 
     @Slot(str)
     def camera_worker_error(self, msg: str) -> None:

@@ -81,7 +81,6 @@ class SmileApp(QApplication):
         logger.info("Shutdown completed")
 
     def _setup_smile_worker(self):
-        self._smile_worker.result.connect(self._window.update_smile_status)
         self._smile_worker.error.connect(self._window.smile_worker_error)
         self._smile_worker.progress.connect(self._window.smile_worker_progress)
 

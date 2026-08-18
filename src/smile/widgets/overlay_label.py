@@ -29,19 +29,14 @@ class OverlayLabel(QLabel):
         super().paintEvent(event)
 
         with QPainter(self) as p:
-            if self._detection_rects is not None:
-                p.setRenderHint(QPainter.RenderHint.Antialiasing)
-                pen = QPen(QColor("lime"), 2)
-                pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-                pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)  # Сглаживает углы рамок
-                p.setPen(pen)
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-                for r, color in self._detection_rects:
-                    pen = QPen(color, 2)
-                    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-                    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-                    p.setPen(pen)
-                    p.drawRect(r)
+            for r, color in self._detection_rects:
+                pen = QPen(color, 2)
+                pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+                pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+                p.setPen(pen)
+                p.drawRect(r)
 
             if self._show_statistics and self._timestamp_ns > 0:
                 delta = self._timestamp_ns - self._prev_timestamp_ns
