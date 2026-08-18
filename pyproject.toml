@@ -33,6 +33,7 @@ classifiers = [
 dev = [
     "debugpy>=1.8.21",
     "mypy>=2.1.0",
+    "pytest>=9.1.1",
     "ruff>=0.15.13",
 ]
 
