@@ -2,13 +2,12 @@ import logging
 from typing import cast, override
 
 from PySide6.QtCore import QEvent, QObject, QSize, Qt, Slot
-from PySide6.QtGui import QImage, QKeyEvent, QPixmap
+from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 
 from smile.camera.frame import Frame
 from smile.recognition.detectors.face_detection import FaceDetectionResult
 from smile.ui.generated.ui_main_window import Ui_MainWindow
-from smile.utils.convert import ColoredQRect, faces_to_qrects_with_colors
 
 logger = logging.getLogger(__name__)
 
@@ -48,9 +47,7 @@ class MainWindow(QMainWindow):
             return
 
         image = frame.image
-        height, width, channels = image.shape
-        # logger.info(f"Frame {frame.frame_id} {width} x {height} x {channels}")
-        bytes_per_line = channels * width
+        height, width, _ = image.shape
 
         if frame.frame_id == 0:
             self.ui.video_label.setMinimumSize(QSize(width, height))
@@ -58,23 +55,12 @@ class MainWindow(QMainWindow):
 
         self._camera_frame_id = frame.frame_id
 
-        qimage = QImage(
-            image.data,
-            width,
-            height,
-            bytes_per_line,
-            QImage.Format.Format_BGR888,
+        self.ui.video_label.set_frame(
+            image,
+            self._face_detection_result.faces,
+            frame.timestamp_ns,
+            True,
         )
-
-        pixmap = QPixmap.fromImage(qimage)
-        self.ui.video_label.setPixmap(pixmap)
-
-        coords: tuple[ColoredQRect, ...] = faces_to_qrects_with_colors(
-            self._face_detection_result.faces, pixmap.width(), pixmap.height()
-        )
-
-        ts_ns = frame.timestamp_ns if frame else 0
-        self.ui.video_label.set_detections(coords, ts_ns, True)
 
     @Slot(FaceDetectionResult)
     def update_face_recognition(self, detection_result: FaceDetectionResult) -> None:
