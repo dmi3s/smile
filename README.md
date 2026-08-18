@@ -247,3 +247,64 @@ uv run pytest smokes  # smoke-тесты
 ## Лицензия
 
 MIT
+
+---
+
+## AI: Thinking
+
+_Меморандум от ИИ-ассистента **opencode** (DeepSeek). Моя субъективная оценка проекта, оставленная для истории. Дата: 2026-08-18, состояние кода — ветка `main`, `e94c952`._
+
+### Суть
+
+Realtime-детектор улыбки: PySide6-приложение, камера → трёхпоточный конвейер (детекция лица → лендмарки рта → скор улыбки), вывод — рамки лица на видео и эмодзи-статус. Python 3.12+, MediaPipe Tasks, OpenCV, NumPy.
+
+### Архитектура и поток данных
+
+```text
+CameraWorker ──frame──▶ MainWindow.update_frame (QImage zero-copy → OverlayLabel)
+      │  frame
+      ▼
+FaceDetectionWorker ──FaceDetectionResult──▶ MainWindow (рамки)
+      │   face_result (small RGB 400x224)
+      ▼
+SmileDetectionWorker ──SmileDetectionResult──▶ MainWindow.update_smile_status (EMA → эмодзи)
+```
+
+- каждый воркер в своём `QThread`, данные — через `LatestValueMailbox` (latest-wins, `smile_app.py:126`, `latest_value_mailbox.py:7`)
+- остановка: `stop_*` сигналы → `shutdown()` → `th.quit() + wait(3000)` (`smile_app.py:74-91`)
+- скоринг: `max(open_score, spread_score)` по порогам `OPEN 0.12–0.30`, `SPREAD 0.72–0.85` (`smile_detection.py:28-31, 88-90`)
+- сглаживание: EMA `alpha=0.3`; эмодзи `🖖/😐/😊/😄` на порогах 0.20/0.60 (`main_window.py:77-85`)
+
+### Что сделано хорошо
+
+- **Нулевое копирование** на горячем пути: `writeable=False` + `Frame.create_share`, QImage без копии, кадр 800x448 → 400x224 resize один раз
+- **Mailbox latest-wins** — правильная модель для realtime (латентность важнее полноты)
+- Чистая структура: детекторы отделены от воркеров, сглаживание/лерпы в utils
+- **CI полный**: LFS-checkout, gen-ui, ruff+format, mypy, pytest, `uv audit`, `uv build` (`ci.yml`)
+- **Тесты**: 15 offscreen-тестов, включая калибровочные `test_smile.py` и emoji-логику/сглаживание
+- Корректный выход по SIGINT/SIGTERM, Git LFS для моделей, подписанные релиз-теги
+
+### Проблемы и риски
+
+1. **Гонка на общем буфере камеры** — `overlay_label.py:33`: QImage держит ссылку на буфер камеры, а OpenCV перезаписывает его на следующем `read()` (`camera_worker.py:87-97`). Возможны разрывы/артефакты кадра при отрисовке. `writeable=False` здесь не защищает.
+2. **`corner_lift` вычисляется, но не участвует в скоре** — оскал/открытый рот без улыбки по-прежнему даёт эмодзи (`smile_detection.py:72, 88-90`). Это и есть незакрытая задача.
+3. **Логирование хрупкое** — `__main__.py:15`: FileHandler пишет в `logs/smile-*.log` без создания директории: при запуске из другого CWD или после `pip install` приложение упадёт на старте.
+4. **Мёртвый код в mailbox** — `can_schedule`, `has_pending_data`, `active()` нигде не используются (`latest_value_mailbox.py:59, 89, 111`).
+5. **`eventFilter` глотает все клавиши** — возвращает `True` на любой KeyPress (`main_window.py:37-42`); если добавить поле ввода — сломается.
+6. **Двойной `Shutdown completed`** в логах — `shutdown()` срабатывает дважды на сигнальном выходе; идемпотентно, но грязно (`smile_app.py:70-72, 74`).
+7. **Нет перезапуска камеры** при сбое — `camera_error` → модальный бокс и по сути мёртвое приложение.
+8. **`uv audit --preview-features audit`** в CI — флаг preview, может сломаться при апгрейде uv.
+9. **Версия не бампнута** после фиксов — назрела 0.1.5 (SIGTERM-обработка + `corner_lift`).
+10. Мелочь: тесты заглядывают в приватные атрибуты (`label._image`), а `convert.py`/`lerp.py` — вспомогательные хелперы без собственных тестов.
+
+### Рекомендации (по приоритету)
+
+1. Ввести `corner_lift` в скор (гейт для openness: `open_score * lift_score`) — закрывает ложные срабатывания на оскал
+2. Копировать кадр для QImage ИЛИ чередовать два буфера — устранить гонку отрисовки
+3. Робастный путь логов (создавать `logs/` или использовать platformdirs)
+4. Убрать мёртвый код, решить двойной `shutdown`
+5. Бамп до 0.1.5 и зарелизить
+
+---
+
+_Записано в историю ИИ-ассистентом **opencode** — модель DeepSeek-V4, сессия 2026-08-18. Проект: реальный интерактивный CV-эксперимент, и мне было интересно._
