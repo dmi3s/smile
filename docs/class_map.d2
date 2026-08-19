@@ -1,0 +1,33 @@
+#direction: down
+
+app: "SmileApp (QApplication)\nсоздаёт воркеры и 3 потока, оркестрация,\nидемпотентный shutdown, SIGINT/SIGTERM"
+threads: "3 × QThread\ncamera_worker / face_worker / smile_worker"
+camera: "CameraWorker\nQTimer @ ~20 fps → read() → emit frame_ready"
+frame: "Frame\nfrozen-датакласс: image, frame_id, timestamp_ns;\ncreate_share / create_copy (read-only)"
+face: "FaceDetectionWorker\nFaceDetector VIDEO mode,\n0.5x RGB, нормализация рамок (0..1)"
+smile: "SmileDetectionWorker\nFaceLandmarker VIDEO mode,\nsmile_score() по ландмаркам рта"
+alg: "smile_detection.py\nmouth_features(), smile_score(),\nпороги OPEN/SPREAD/LIFT"
+mailbox: "LatestValueMailbox<T>\nlatest-wins, busy-флаг"
+window: "MainWindow\nслоты update_frame / update_face_recognition /\nupdate_smile_status; screenshot; statusbar"
+overlay: "OverlayLabel\nQPainter: видео + рамки лиц + FPS"
+smooth: "ExponentialJitterSmoother\nEMA α=0.3 для скора улыбки"
+models: "blaze_face_short_range.tflite\nface_landmarker.task (Git LFS)"
+
+app -> threads: "moveToThread + th.started.connect(wakeup)"
+app -> camera
+app -> face
+app -> smile
+app -> window: "создаёт MainWindow"
+camera -> frame: "create_copy() — снимок кадра"
+frame -> face: "new_frame(frame)"
+face -> alg: "geometry ландмарков"
+smile -> alg
+face -> mailbox: "new_data / try_start / extract_data"
+smile -> mailbox
+face -> models: "FaceDetector"
+smile -> models: "FaceLandmarker"
+camera -> window: "frame_ready (update_frame)"
+face -> window: "result (update_face_recognition)"
+smile -> window: "result (update_smile_status)"
+window -> overlay: "set_frame(...)"
+window -> smooth: "update(score)"

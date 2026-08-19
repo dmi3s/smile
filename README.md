@@ -1,30 +1,32 @@
 ![logo](src/smile/resources/icons/smile-lol.png)
 # Smile
 
-Realtime-площадка для детекции лиц, построенная на Python, Qt и MediaPipe.
+**Read this in:** [English](README.md) · [Русский](README.ru.md) · [中文](README.zh.md)
 
-Проект захватывает кадры с веб-камеры, в отдельных потоках-воркерах выполняет детекцию лица и улыбки и рисует оверлей в UI на PySide6.
+Realtime face-detection playground built on Python, Qt and MediaPipe.
 
-Текущее состояние:
+The project grabs frames from the webcam, runs face and smile detection in separate worker threads and draws an overlay in a PySide6 UI.
 
-- realtime-превью с веб-камеры
-- детекция лиц (мульти-лицо)
-- детекция улыбки (скор 0..1 + эмодзи-статус)
-- оверлей-рендеринг
-- конвейер из трёх потоков
-- нормализованные координаты лиц
-- корректное завершение потоков
+Current state:
 
-Планируется:
+- realtime webcam preview
+- face detection (multi-face)
+- smile detection (score 0..1 + emoji status)
+- overlay rendering
+- three-thread pipeline
+- normalized face coordinates
+- graceful thread shutdown
 
-- сглаживание/трекинг лиц
-- UI настроек камеры
-- метрики FPS
-- обработка переподключения камеры
+Planned:
+
+- face smoothing/tracking
+- camera settings UI
+- FPS metrics
+- camera reconnect handling
 
 ---
 
-## Технологии
+## Technologies
 
 - Python 3.12
 - PySide6 / Qt6
@@ -32,84 +34,84 @@ Realtime-площадка для детекции лиц, построенная
 - MediaPipe Tasks (FaceDetector + FaceLandmarker)
 - NumPy
 
-Инструменты:
+Tools:
 
 - uv
 - just
-- pytest (smoke-тесты)
+- pytest (smoke tests)
 - GitHub Actions (CI)
-- Git LFS (модели)
+- Git LFS (models)
 
 ---
 
-## Возможности
+## Features
 
-- Realtime-захват с веб-камеры
-- Детекция лиц через MediaPipe
-- Детекция улыбки через FaceLandmarker: `openness` (раскрытие рта) + `spread` (ширина рта/межглазье), калиброванные пороги
-- Три рабочих потока (camera → face → smile) с общим mailbox-механизмом
-- Безопасный для UI-потока рендеринг через QPainter
-- Нормализованные bounding box'ы (0..1)
-- Стратегия сброса устаревших кадров для низкой задержки
-- Статус улыбки: `🖖` нет лица / `😐` нейтрально / `😊` улыбка / `😄` широкая улыбка
-- Кнопка Screenshot — снимок всего окна в `~/Pictures/smile/smile-ГГГГ-ММ-ДД_ЧЧ-ММ-СС.png`
-- Smoke-тесты (offscreen Qt)
+- Realtime webcam capture
+- Face detection via MediaPipe
+- Smile detection via FaceLandmarker: `openness` (mouth opening) + `spread` (mouth width / inter-eye distance), calibrated thresholds
+- Three worker threads (camera → face → smile) on a shared mailbox mechanism
+- UI-thread-safe rendering via QPainter
+- Normalized bounding boxes (0..1)
+- Stale-frame drop strategy for low latency
+- Smile status: `🖖` no face / `😐` neutral / `😊` smile / `😄` big smile
+- Screenshot button — captures the whole window to `~/Pictures/smile/smile-YYYY-MM-DD_HH-MM-SS.png`
+- Smoke tests (offscreen Qt)
 
 ---
 
-## Структура проекта
+## Project structure
 
 ```text
 src/smile/
 ├── camera/          # CameraWorker, Frame
-├── recognition/     # воркеры детекции лица/улыбки + модели (LFS)
+├── recognition/     # face/smile detection workers + models (LFS)
 │   └── detectors/
 ├── ui/              # main_window.ui + generated/
 ├── widgets/         # OverlayLabel
 ├── windows/         # MainWindow
 ├── utils/           # LatestValueMailbox, lerp, smooth, convert
-├── resources/       # иконки, изображения, qrc
-└── smile_app.py     # приложение + оркестрация потоков
+├── resources/       # icons, images, qrc
+└── smile_app.py     # app + thread orchestration
 
-smokes/              # pytest smoke-тесты (offscreen)
+smokes/              # pytest smoke tests (offscreen)
 ```
 
 ---
 
-## Установка
+## Installation
 
-### Требования
+### Requirements
 
 - Python 3.12+
 - uv
 - just
 
-Установка uv:
+Install uv:
 
 https://docs.astral.sh/uv/
 
-Установка just:
+Install just:
 
 https://github.com/casey/just
 
 ---
 
-## Настройка
+## Setup
 
-Клонирование:
+Clone:
 
 ```bash
 git clone git@github.com:dmi3s/smile.git
 cd smile
 ```
 
-Установка зависимостей:
+Install dependencies:
 
 ```bash
 uv sync
 ```
 
-Модели (`blaze_face_short_range.tflite`, `face_landmarker.task`) хранятся в Git LFS и подтягиваются автоматически при клонировании, если LFS установлен:
+Models (`blaze_face_short_range.tflite`, `face_landmarker.task`) are stored in Git LFS and are pulled automatically on clone if LFS is installed:
 
 ```bash
 git lfs install
@@ -117,54 +119,54 @@ git lfs install
 
 ---
 
-## Запуск
+## Running
 
-Через just:
+Via just:
 
 ```bash
-just bootstrap   # первый раз
+just bootstrap   # first time
 just run
 ```
 
-Или напрямую:
+Or directly:
 
 ```bash
 uv run smile
 ```
 
-Управление:
+Controls:
 
-- `Ctrl+Q` — выход
-- кнопка `Screenshot` — сохранить снимок окна в `~/Pictures/smile/`
+- `Ctrl+Q` — quit
+- `Screenshot` button — save a window snapshot to `~/Pictures/smile/`
 
 ---
 
-## Разработка
+## Development
 
-Генерация UI-файлов Qt:
+Generate Qt UI files:
 
 ```bash
 just gen-ui
 ```
 
-Генерация ресурсов Qt:
+Generate Qt resources:
 
 ```bash
 just gen-resources
 ```
 
-Проверка кода:
+Code checks:
 
 ```bash
 just check            # ruff + mypy
-uv run pytest smokes  # smoke-тесты
+uv run pytest smokes  # smoke tests
 ```
 
 ---
 
-## Архитектура
+## Architecture
 
-Приложение использует асинхронный realtime-конвейер из трёх потоков:
+The app uses an asynchronous realtime pipeline of three threads:
 
 ```text
                 ┌────────────────────┐
@@ -189,64 +191,64 @@ uv run pytest smokes  # smoke-тесты
                                    Qt Main Thread
 ```
 
-Ключевые идеи:
+Key ideas:
 
-- захват камеры никогда не блокируется детекцией
-- рендеринг и детекция лица выполняются параллельно
-- каждый воркер обрабатывает только последний доступный вход
-- устаревшие кадры намеренно сбрасываются для снижения задержки
-- координаты лиц хранятся нормализованными (`0..1`)
-- весь рендеринг Qt происходит в главном UI-потоке
+- camera capture is never blocked by detection
+- rendering and face detection run in parallel
+- each worker only processes the latest available input
+- stale frames are intentionally dropped to reduce latency
+- face coordinates are stored normalized (`0..1`)
+- all Qt rendering happens on the main UI thread
 
-### Детекция улыбки
+### Smile detection
 
-Смайл-воркер прогоняет кадр через `FaceLandmarker` (478 точек) и считает две метрики по ландмаркам рта:
+The smile worker runs the frame through `FaceLandmarker` (478 points) and computes two mouth-landmark metrics:
 
-- `openness` = высота рта / ширина рта — рот открывается при улыбке
-- `spread` = ширина рта / межглазное расстояние — уголки рта разъезжаются
+- `openness` = mouth height / mouth width — the mouth opens when smiling
+- `spread` = mouth width / inter-eye distance — the mouth corners spread apart
 
-Скор `max(openness, spread)` ∈ [0, 1], пороги откалиброваны по реальным данным с камеры. Обе метрики возвращаются к нейтральным значениям, поэтому статус корректно «гаснет», когда улыбка пропадает.
+The score `max(openness, spread)` ∈ [0, 1], thresholds calibrated on real camera data. Both metrics return to neutral values, so the status correctly goes off when the smile disappears.
 
-Реперные точки — индексы ландмарков MediaPipe FaceMesh: `13`/`14` (центры губ), `61`/`291` (углы рта), `33`/`263` (внешние углы глаз).
+Reference points — MediaPipe FaceMesh landmark indices: `13`/`14` (lip centers), `61`/`291` (mouth corners), `33`/`263` (outer eye corners).
 
 ---
 
-## Производительность
+## Performance
 
-На Linux-десктопе:
+On a Linux desktop:
 
-- ~20-30 FPS превью с веб-камеры
-- realtime-детекция лица и улыбки
-- инференс на CPU через XNNPACK
+- ~20-30 FPS webcam preview
+- realtime face and smile detection
+- CPU inference via XNNPACK
 
-Фактическая производительность зависит от:
+Actual performance depends on:
 
-- разрешения веб-камеры
+- webcam resolution
 - CPU
-- масштаба кадра для детекции
-- бэкенда рендеринга
+- frame scale for detection
+- rendering backend
 
 ---
 
-## Заметки
+## Notes
 
-Проект — в первую очередь эксперимент:
+The project is first and foremost an experiment:
 
-- изучение PySide6
-- исследование realtime CV-конвейеров
-- сравнение эргономики Python и C++ для десктопных CV-приложений
+- learning PySide6
+- exploring realtime CV pipelines
+- comparing Python vs C++ ergonomics for desktop CV apps
 
-Приоритеты текущей реализации:
+Priorities of the current implementation:
 
-- простота
-- ясность архитектуры
-- скорость разработки
+- simplicity
+- architectural clarity
+- development speed
 
-над преждевременной оптимизацией.
+over premature optimization.
 
 ---
 
-## Лицензия
+## License
 
 MIT
 
@@ -254,59 +256,59 @@ MIT
 
 ## AI: Thinking
 
-_Меморандум от ИИ-ассистента **opencode** (DeepSeek). Моя субъективная оценка проекта, оставленная для истории. Дата: 2026-08-18, состояние кода — ветка `main`, `e94c952`._
+_Memorandum from the AI assistant **opencode** (DeepSeek). My subjective assessment of the project, left for history. Date: 2026-08-18, code state — branch `main`, `e94c952`. Resolved items are marked inline._
 
-### Суть
+### Essence
 
-Realtime-детектор улыбки: PySide6-приложение, камера → трёхпоточный конвейер (детекция лица → лендмарки рта → скор улыбки), вывод — рамки лица на видео и эмодзи-статус. Python 3.12+, MediaPipe Tasks, OpenCV, NumPy.
+Realtime smile detector: PySide6 app, camera → three-thread pipeline (face detection → mouth landmarks → smile score), output — face boxes over video and an emoji status. Python 3.12+, MediaPipe Tasks, OpenCV, NumPy.
 
-### Архитектура и поток данных
+### Architecture and data flow
 
 ```text
 CameraWorker ──frame──▶ MainWindow.update_frame (QImage zero-copy → OverlayLabel)
       │  frame
       ▼
-FaceDetectionWorker ──FaceDetectionResult──▶ MainWindow (рамки)
+FaceDetectionWorker ──FaceDetectionResult──▶ MainWindow (boxes)
       │   face_result (small RGB 400x224)
       ▼
-SmileDetectionWorker ──SmileDetectionResult──▶ MainWindow.update_smile_status (EMA → эмодзи)
+SmileDetectionWorker ──SmileDetectionResult──▶ MainWindow.update_smile_status (EMA → emoji)
 ```
 
-- каждый воркер в своём `QThread`, данные — через `LatestValueMailbox` (latest-wins, `smile_app.py:126`, `latest_value_mailbox.py:7`)
-- остановка: `stop_*` сигналы → `shutdown()` → `th.quit() + wait(3000)` (`smile_app.py:74-91`)
-- скоринг: `max(open_score, spread_score)` по порогам `OPEN 0.12–0.30`, `SPREAD 0.72–0.85` (`smile_detection.py:28-31, 88-90`)
-- сглаживание: EMA `alpha=0.3`; эмодзи `🖖/😐/😊/😄` на порогах 0.20/0.60 (`main_window.py:77-85`)
+- each worker in its own `QThread`, data via `LatestValueMailbox` (latest-wins, `smile_app.py:126`, `latest_value_mailbox.py:7`)
+- shutdown: `stop_*` signals → `shutdown()` → `th.quit() + wait(3000)` (`smile_app.py:74-91`)
+- scoring: `max(open_score, spread_score)` with thresholds `OPEN 0.12–0.30`, `SPREAD 0.72–0.85` (`smile_detection.py:28-31, 88-90`)
+- smoothing: EMA `alpha=0.3`; emoji `🖖/😐/😊/😄` at thresholds 0.20/0.60 (`main_window.py:77-85`)
 
-### Что сделано хорошо
+### What is done well
 
-- **Снапшот кадра в источнике**: `Frame.create_copy` в camera-воркере — QImage и CV-воркеры читают приватную read-only копию, гонка перезаписи буфера исключена (корректность > скорость)
-- **Mailbox latest-wins** — правильная модель для realtime (латентность важнее полноты)
-- Чистая структура: детекторы отделены от воркеров, сглаживание/лерпы в utils
-- **CI полный**: LFS-checkout, gen-ui, ruff+format, mypy, pytest, `uv audit`, `uv build` (`ci.yml`)
-- **Тесты**: 15 offscreen-тестов, включая калибровочные `test_smile.py` и emoji-логику/сглаживание
-- Корректный выход по SIGINT/SIGTERM, Git LFS для моделей, подписанные релиз-теги
+- **Frame snapshot at the source**: `Frame.create_copy` in the camera worker — QImage and the CV workers read a private read-only copy, so buffer-overwrite races are excluded (correctness over speed)
+- **Mailbox latest-wins** — the right model for realtime (latency over completeness)
+- Clean structure: detectors separated from workers, smoothing/lerp helpers in utils
+- **Full CI**: LFS checkout, gen-ui, ruff+format, mypy, pytest, `uv audit`, `uv build` (`ci.yml`)
+- **Tests**: offscreen tests including calibrated `test_smile.py` and emoji logic/smoothing
+- Correct SIGINT/SIGTERM shutdown, Git LFS for models, signed release tags
 
-### Проблемы и риски
+### Problems and risks
 
-1. **Гонка на общем буфере камеры** — было: `overlay_label.py:33` QImage держит ссылку на буфер камеры, а OpenCV перезаписывает его на следующем `read()` (`camera_worker.py:87-97`), возможны рваные кадры. **Решено**: копия в источнике (`Frame.create_copy`), Frame владеет приватным снапшотом.
-2. **`corner_lift` вычисляется, но не участвует в скоре** — оскал/открытый рот без улыбки по-прежнему даёт эмодзи (`smile_detection.py:72, 88-90`). Это и есть незакрытая задача.
-3. **Логирование хрупкое** — `__main__.py:15`: FileHandler пишет в `logs/smile-*.log` без создания директории: при запуске из другого CWD или после `pip install` приложение упадёт на старте.
-4. **Мёртвый код в mailbox** — `can_schedule`, `has_pending_data`, `active()` нигде не используются (`latest_value_mailbox.py:59, 89, 111`).
-5. **`eventFilter` глотает все клавиши** — возвращает `True` на любой KeyPress (`main_window.py:37-42`); если добавить поле ввода — сломается.
-6. **Двойной `Shutdown completed`** в логах — `shutdown()` срабатывает дважды на сигнальном выходе; идемпотентно, но грязно (`smile_app.py:70-72, 74`).
-7. **Нет перезапуска камеры** при сбое — `camera_error` → модальный бокс и по сути мёртвое приложение.
-8. **`uv audit --preview-features audit`** в CI — флаг preview, может сломаться при апгрейде uv.
-9. **Версия не бампнута** после фиксов — назрела 0.1.5 (SIGTERM-обработка + `corner_lift`).
-10. Мелочь: тесты заглядывают в приватные атрибуты (`label._image`), а `convert.py`/`lerp.py` — вспомогательные хелперы без собственных тестов.
+1. **Race on the shared camera buffer** — was: `overlay_label.py:33` QImage holds a reference to the camera buffer, and OpenCV overwrites it on the next `read()` (`camera_worker.py:87-97`), possible torn frames. **Fixed**: copy at the source (`Frame.create_copy`), the Frame owns a private snapshot.
+2. **`corner_lift` not used in the score** — was: a bared-teeth grimace / open mouth without a smile triggered the emoji (`smile_detection.py:72, 88-90`). **Fixed**: `score = max(spread_score, open_score * lift_gate)` (`05fef5d`).
+3. **Fragile logging** — was: FileHandler wrote to `logs/smile-*.log` without creating the directory (`__main__.py:15`). **Fixed**: `Path("logs").mkdir(...)` before the handler (`77fa726`).
+4. **Dead code in the mailbox** — was: `can_schedule`, `has_pending_data`, `active()` unused (`latest_value_mailbox.py:59, 89, 111`). **Fixed**: removed (`4952b41`).
+5. **`eventFilter` swallows all keys** — returns `True` for any KeyPress (`main_window.py:37-42`); adding an input field would break.
+6. **Double `Shutdown completed`** in logs — was: `shutdown()` ran twice on signal exit (`smile_app.py:70-72, 74`). **Fixed**: guard flag + removed `processEvents()` re-entrancy (`7a6df3d`).
+7. **No camera restart** on failure — `camera_error` → modal box and effectively a dead app.
+8. **`uv audit --preview-features audit`** in CI — a preview flag, may break on uv upgrades.
+9. **Version not bumped** after fixes — 0.1.5 is due (SIGTERM handling + `corner_lift`).
+10. Minor: tests peek into private attributes (`label._image`), and `convert.py`/`lerp.py` are helper utilities without their own tests.
 
-### Рекомендации (по приоритету)
+### Recommendations (by priority)
 
-1. Ввести `corner_lift` в скор (гейт для openness: `open_score * lift_score`) — закрывает ложные срабатывания на оскал
-2. ~~Копировать кадр для QImage ИЛИ чередовать два буфера~~ — **сделано**: снапшот `Frame.create_copy` в источнике
-3. Робастный путь логов (создавать `logs/` или использовать platformdirs)
-4. Убрать мёртвый код, решить двойной `shutdown`
-5. Бамп до 0.1.5 и зарелизить
+1. ~~Bring `corner_lift` into the score~~ — **done**: openness gated by lift (`05fef5d`)
+2. ~~Copy the frame for QImage OR alternate two buffers~~ — **done**: `Frame.create_copy` snapshot at the source
+3. ~~Robust log path~~ — **done**: `logs/` is created on startup (`77fa726`)
+4. ~~Remove dead code, fix the double `shutdown`~~ — **done** (`4952b41`, `7a6df3d`)
+5. Bump to 0.1.5 and release — still open
 
 ---
 
-_Записано в историю ИИ-ассистентом **opencode** — модель DeepSeek-V4, сессия 2026-08-18. Проект: реальный интерактивный CV-эксперимент, и мне было интересно._
+_Written into history by the AI assistant **opencode** — model DeepSeek-V4, session 2026-08-18. The project is a real interactive CV experiment, and I found it interesting._

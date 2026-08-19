@@ -1,6 +1,6 @@
 #set text(font: "DejaVu Sans")
 
-= Smile project
+= Проект Smile
 #grid(
   columns: (10%, 75%),
   gutter: 1em,
@@ -9,17 +9,17 @@
     #image("images/smile-lol.png", width: 40pt)
   ],
   [
-    _Realtime face detection playground built with Python, Qt and MediaPipe._
+    _Realtime-площадка для детекции лиц, построенная на Python, Qt и MediaPipe._
   ],
 )
 #v(1em)
-The project captures webcam frames, runs face detection in a separate worker thread and renders detection overlays in a PySide6 UI.
+Проект захватывает кадры с веб-камеры, в отдельных потоках-воркерах выполняет детекцию лица и улыбки и рисует оверлей в UI на PySide6.
 
 #v(1em)
-Realtime pipeline of three worker threads:
+Realtime-конвейер из трёх потоков:
 
-- _camera_ — webcam capture (`frame_ready` to UI and face worker)
-- _face_ — MediaPipe FaceDetector, publishes normalized boxes
-- _smile_ — MediaPipe FaceLandmarker, computes smile score `max(openness, spread)` from mouth landmarks (`13`/`14`, `61`/`291`, eyes `33`/`263`)
+- _camera_ — захват с веб-камеры (`frame_ready` в UI и в face-воркер)
+- _face_ — MediaPipe FaceDetector, публикует нормализованные рамки (0..1)
+- _smile_ — MediaPipe FaceLandmarker, считает скор улыбки по ландмаркам рта (`13`/`14`, `61`/`291`, глаза `33`/`263`): `openness` (раскрытие рта) и `spread` (ширина рта/межглазье), гейт — `corner_lift` (подъём уголков)
 
-Each worker consumes only the latest available input via a mailbox; stale frames are dropped for low latency. UI shows emoji status: `🖖` no face / `😐` neutral / `😊` smile / `😄` big smile.
+Каждый воркер потребляет только последний доступный вход через mailbox (latest-wins); устаревшие кадры намеренно сбрасываются для низкой задержки. UI показывает статус улыбки: `🖖` нет лица / `😐` нейтрально / `😊` улыбка / `😄` широкая улыбка. Кнопка Screenshot сохраняет снимок всего окна в `~/Pictures/smile/` (имя по времени).

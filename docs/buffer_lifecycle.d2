@@ -1,0 +1,25 @@
+#direction: right
+
+frame_box: "Frame — один кадр (копия на источнике)"
+camera: "CameraWorker\ncv2.VideoCapture.read() (BGR)"
+copy: "Frame.create_copy()\nimage.copy() + writeable=False"
+qimage: "QImage zero-copy → OverlayLabel"
+cv: "CV-воркеры: face / smile"
+safe: "рваных кадров нет:\nбуфер никто не перезаписывает"
+frame_box.camera -> frame_box.copy: "BGR frame"
+frame_box.copy -> frame_box.qimage
+frame_box.copy -> frame_box.cv
+frame_box.qimage -> frame_box.safe
+frame_box.cv -> frame_box.safe
+
+mailbox_box: "LatestValueMailbox<T> — буфер ввода воркера"
+new_data: "new_data(x)\n_pending_data = x — перезаписывает старый pending"
+try_start: "try_start()\n_running && !_busy && pending != None"
+extract: "extract_data()\nвзять значение и очистить слот"
+done: "complete_and_should_continue()\n_busy = False; если pending снова → перезапуск"
+overwrite: "latest-wins:\nстарый pending отбрасывается"
+mailbox_box.new_data -> mailbox_box.try_start
+mailbox_box.try_start -> mailbox_box.extract: "да → _busy = True"
+mailbox_box.extract -> mailbox_box.done
+mailbox_box.done -> mailbox_box.try_start: "пока есть свежие данные"
+mailbox_box.new_data -> mailbox_box.overwrite
