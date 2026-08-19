@@ -6,6 +6,7 @@ from smile.recognition.detectors.face_detection import (
     FaceBox,
     FaceDetectionResult,
 )
+from smile.recognition.detectors.flashlight_detection import FlashlightDetectionResult
 from smile.recognition.detectors.smile_detection import SmileDetectionResult
 from smile.windows import main_window
 from smile.windows.main_window import MainWindow
@@ -136,3 +137,36 @@ def test_statusbar_shows_smile_and_fps(qapp):
     assert "smile=0.80" in text
     assert "cam 20" in text
     assert "fps" in text
+
+
+def test_flashlight_status_and_overlay(qapp):
+    window = MainWindow()
+    window.show()
+
+    window.update_flashlight(
+        FlashlightDetectionResult(
+            detected=True,
+            score=0.9,
+            bright_bbox=FaceBox(0.3, 0.4, 0.2, 0.3),
+            brightness=1.0,
+            frame_id=1,
+        )
+    )
+
+    assert "🔦 0.90" in window.ui.statusbar.currentMessage()
+
+    window.update_frame(_frame(2, 1_050_000_000))
+    assert window.ui.video_label._flashlight_bbox == FaceBox(0.3, 0.4, 0.2, 0.3)
+
+    window.update_flashlight(
+        FlashlightDetectionResult(
+            detected=False,
+            score=0.0,
+            bright_bbox=None,
+            brightness=0.0,
+            frame_id=3,
+        )
+    )
+    assert "🔦 —" in window.ui.statusbar.currentMessage()
+    window.update_frame(_frame(4, 1_100_000_000))
+    assert window.ui.video_label._flashlight_bbox is None

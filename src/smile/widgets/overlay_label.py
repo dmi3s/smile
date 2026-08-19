@@ -3,7 +3,7 @@ from PySide6.QtCore import QRect, Qt, Signal
 from PySide6.QtGui import QColor, QImage, QPainter, QPen
 from PySide6.QtWidgets import QLabel
 
-from smile.recognition.detectors.face_detection import DetectedFaceBox
+from smile.recognition.detectors.face_detection import DetectedFaceBox, FaceBox
 from smile.utils.convert import face_to_qrect_with_color
 from smile.utils.smooth import FloatSmoother
 
@@ -16,6 +16,7 @@ class OverlayLabel(QLabel):
         self._image: QImage | None = None
         self._image_ref: np.ndarray | None = None
         self._face_boxes: tuple[DetectedFaceBox, ...] = ()
+        self._flashlight_bbox: FaceBox | None = None
 
         self._show_statistics: bool = False
         self._fps_smooth = FloatSmoother(alpha=0.03)
@@ -28,6 +29,7 @@ class OverlayLabel(QLabel):
         face_boxes: tuple[DetectedFaceBox, ...],
         time_ns: int,
         show_statistics=False,
+        flashlight_bbox: FaceBox | None = None,
     ) -> None:
         """Thread-safe update: call from GUI thread only."""
         height, width, channels = image.shape
@@ -36,6 +38,7 @@ class OverlayLabel(QLabel):
             image.data, width, height, channels * width, QImage.Format.Format_BGR888
         )
         self._face_boxes = face_boxes
+        self._flashlight_bbox = flashlight_bbox
         self._timestamp_ns = time_ns
         self._show_statistics = show_statistics
         self.update()
@@ -83,6 +86,21 @@ class OverlayLabel(QLabel):
                         fb, self._image.width(), self._image.height()
                     )
                     pen = QPen(color, 2)
+                    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+                    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+                    p.setPen(pen)
+                    p.drawRect(self._map_rect(rect))
+
+                if self._flashlight_bbox is not None:
+                    rect, _ = face_to_qrect_with_color(
+                        DetectedFaceBox(
+                            bbox=self._flashlight_bbox,
+                            score=0.99,
+                        ),
+                        self._image.width(),
+                        self._image.height(),
+                    )
+                    pen = QPen(QColor("gold"), 3)
                     pen.setCapStyle(Qt.PenCapStyle.RoundCap)
                     pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
                     p.setPen(pen)

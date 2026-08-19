@@ -10,6 +10,9 @@ from PySide6.QtWidgets import QApplication
 
 from smile.camera.camera_worker import CameraWorker
 from smile.recognition.detectors.face_detection_worker import FaceDetectionWorker
+from smile.recognition.detectors.flashlight_detection_worker import (
+    FlashlightDetectionWorker,
+)
 from smile.recognition.detectors.smile_detection_worker import SmileDetectionWorker
 from smile.windows.main_window import MainWindow
 
@@ -26,6 +29,7 @@ class SmileApp(QApplication):
     stop_camera = Signal()
     stop_face = Signal()
     stop_smile = Signal()
+    stop_flashlight = Signal()
 
     _FACE_MODEL_PATH = (
         Path(__file__).resolve().parent
@@ -41,6 +45,13 @@ class SmileApp(QApplication):
         / "face_landmarker.task"
     )
 
+    _FLASHLIGHT_MODEL_PATH = (
+        Path(__file__).resolve().parent
+        / "recognition"
+        / "models"
+        / "mobilenet_v2_1.0_224.tflite"
+    )
+
     def __init__(self, args: list[str]):
         super().__init__(args)
 
@@ -53,6 +64,7 @@ class SmileApp(QApplication):
         self._setup_camera_worker()
         self._setup_face_worker()
         self._setup_smile_worker()
+        self._setup_flashlight_worker()
 
         self.aboutToQuit.connect(self.shutdown)
 
@@ -85,6 +97,7 @@ class SmileApp(QApplication):
         self.stop_camera.emit()
         self.stop_face.emit()
         self.stop_smile.emit()
+        self.stop_flashlight.emit()
 
         for th in self._threads:
             th.quit()
@@ -108,9 +121,19 @@ class SmileApp(QApplication):
 
         self.stop_face.connect(self._face_worker.shutdown)
 
+    def _setup_flashlight_worker(self):
+        self._flashlight_worker.result.connect(self._window.update_flashlight)
+        self._flashlight_worker.error.connect(self._window.flashlight_worker_error)
+        self._flashlight_worker.progress.connect(
+            self._window.flashlight_worker_progress
+        )
+
+        self.stop_flashlight.connect(self._flashlight_worker.shutdown)
+
     def _setup_camera_worker(self):
         self._camera_worker.frame_ready.connect(self._window.update_frame)
         self._camera_worker.frame_ready.connect(self._face_worker.new_frame)
+        self._camera_worker.frame_ready.connect(self._flashlight_worker.new_frame)
         self._camera_worker.camera_error.connect(self._window.camera_worker_error)
 
         self.stop_camera.connect(self._camera_worker.shutdown)
@@ -119,10 +142,16 @@ class SmileApp(QApplication):
         self._camera_worker = CameraWorker()
         self._face_worker = FaceDetectionWorker(SmileApp._FACE_MODEL_PATH)
         self._smile_worker = SmileDetectionWorker(SmileApp._LANDMARKER_MODEL_PATH)
+        self._flashlight_worker = FlashlightDetectionWorker(
+            SmileApp._FLASHLIGHT_MODEL_PATH
+        )
         self._threads: tuple[QThread, ...] = (
             SmileApp._create_working_thread(self._camera_worker, "camera_worker"),
             SmileApp._create_working_thread(self._face_worker, "face_worker"),
             SmileApp._create_working_thread(self._smile_worker, "smile_worker"),
+            SmileApp._create_working_thread(
+                self._flashlight_worker, "flashlight_worker"
+            ),
         )
 
         self._window = MainWindow()

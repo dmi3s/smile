@@ -9,6 +9,9 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 
 from smile.camera.frame import Frame
 from smile.recognition.detectors.face_detection import FaceDetectionResult
+from smile.recognition.detectors.flashlight_detection import (
+    FlashlightDetectionResult,
+)
 from smile.recognition.detectors.smile_detection import SmileDetectionResult
 from smile.ui.generated.ui_main_window import Ui_MainWindow
 from smile.utils.fps_meter import FpsMeter
@@ -27,6 +30,13 @@ class MainWindow(QMainWindow):
         self._face_detection_result = FaceDetectionResult(
             tuple(),
             small_frame_rgb=None,
+            frame_id=-1,
+        )
+        self._flashlight_result = FlashlightDetectionResult(
+            detected=False,
+            score=0.0,
+            bright_bbox=None,
+            brightness=0.0,
             frame_id=-1,
         )
         self.installEventFilter(self)
@@ -97,6 +107,11 @@ class MainWindow(QMainWindow):
             self._face_detection_result.faces,
             frame.timestamp_ns,
             True,
+            (
+                self._flashlight_result.bright_bbox
+                if self._flashlight_result.detected
+                else None
+            ),
         )
         self._fps_capture.update(frame.timestamp_ns)
         self._refresh_statusbar()
@@ -105,6 +120,11 @@ class MainWindow(QMainWindow):
     def update_face_recognition(self, detection_result: FaceDetectionResult) -> None:
         self._fps_face.update()
         self._face_detection_result = detection_result
+
+    @Slot(FlashlightDetectionResult)
+    def update_flashlight(self, result: FlashlightDetectionResult) -> None:
+        self._flashlight_result = result
+        self._refresh_statusbar()
 
     @Slot(SmileDetectionResult)
     def update_smile_status(self, smile_status: SmileDetectionResult) -> None:
@@ -127,13 +147,20 @@ class MainWindow(QMainWindow):
         self._refresh_statusbar()
 
     def _refresh_statusbar(self) -> None:
+        flashlight = (
+            f"🔦 {self._flashlight_result.score:.2f}"
+            if self._flashlight_result.detected
+            else "🔦 —"
+        )
         fps_text = (
             f"cam {self._fps_capture.fps:.0f} · "
             f"face {self._fps_face.fps:.0f} · "
             f"smile {self._fps_smile.fps:.0f} · "
             f"render {self._fps_render.fps:.0f} fps"
         )
-        self.ui.statusbar.showMessage(f"{self._smile_status_text}  |  {fps_text}")
+        self.ui.statusbar.showMessage(
+            f"{self._smile_status_text}  |  {flashlight}  |  {fps_text}"
+        )
 
     @Slot()
     def _on_rendered(self) -> None:
@@ -154,6 +181,18 @@ class MainWindow(QMainWindow):
         self.ui.statusbar.showMessage(
             "⚠ Smile Worker Error. Please check log for details."
         )
+
+    @Slot(type(BaseException), BaseException, str)
+    def flashlight_worker_error(
+        self, ex_type: type[BaseException], ex: BaseException, traceback: str
+    ) -> None:
+        self.ui.statusbar.showMessage(
+            "⚠ Flashlight Worker Error. Please check log for details."
+        )
+
+    @Slot(str, int)
+    def flashlight_worker_progress(self, thread_name: str, frame_id: int) -> None:
+        pass
 
     @Slot(str, int)
     def smile_worker_progress(self, thread_name: str, smile_frame_id: int) -> None:
