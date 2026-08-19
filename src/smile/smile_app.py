@@ -5,7 +5,7 @@ import signal
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol, cast
 
-from PySide6.QtCore import QCoreApplication, QObject, QThread, Signal, Slot
+from PySide6.QtCore import QObject, QThread, Signal, Slot
 from PySide6.QtWidgets import QApplication
 
 from smile.camera.camera_worker import CameraWorker
@@ -46,6 +46,8 @@ class SmileApp(QApplication):
 
         logger.info("Initializing ...")
 
+        self._shutdown_started = False
+
         self._create_workers()
 
         self._setup_camera_worker()
@@ -73,13 +75,16 @@ class SmileApp(QApplication):
 
     @Slot()
     def shutdown(self) -> None:
+        if self._shutdown_started:
+            logger.debug("shutdown already in progress, skipping")
+            return
+        self._shutdown_started = True
+
         logger.info("Shutting down ...")
 
         self.stop_camera.emit()
         self.stop_face.emit()
         self.stop_smile.emit()
-
-        QCoreApplication.processEvents()
 
         for th in self._threads:
             th.quit()
