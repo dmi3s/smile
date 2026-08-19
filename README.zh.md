@@ -10,18 +10,17 @@
 当前状态：
 
 - 网络摄像头实时预览
-- 人脸检测（多人脸）
+- 人脸检测（多人脸）+ 人脸框跟踪与平滑
 - 微笑检测（评分 0..1 + 表情符号状态）
-- 叠加层渲染
-- 三线程流水线
+- 手电筒设备检测（ImageNet 分类器 + 亮点）
+- 带人脸与手电筒框的叠加层渲染
+- 状态栏中的 FPS 指标（cam · face · smile · render）
 - 归一化的人脸坐标
 - 线程优雅退出
 
 计划中：
 
-- 人脸平滑/跟踪
 - 摄像头设置界面
-- FPS 指标
 - 摄像头重连处理
 
 ---
@@ -49,7 +48,10 @@
 - 网络摄像头实时采集
 - 通过 MediaPipe 进行人脸检测
 - 通过 FaceLandmarker 进行微笑检测：`openness`（嘴巴张开度）+ `spread`（嘴宽/眼间距），阈值已标定
-- 三个工作线程（camera → face → smile），基于共享 mailbox 机制
+- 人脸平滑与跟踪：基于中心的贪婪匹配 + EMA，人脸框不再在帧间跳动
+- 手电筒检测：ImageNet 分类器（MobileNet V2，`torch` 类别——即使关灯也能识别）+ 亮斑定位 → 黄色框
+- 状态栏中的 FPS 指标：cam · face · smile · render
+- 四个工作线程（camera → face → smile + 手电筒并行），基于共享 mailbox 机制
 - 通过 QPainter 进行 UI 线程安全的渲染
 - 归一化边界框（0..1）
 - 丢弃过期帧的低延迟策略
@@ -64,12 +66,14 @@
 ```text
 src/smile/
 ├── camera/          # CameraWorker, Frame
-├── recognition/     # 人脸/微笑检测 worker + 模型 (LFS)
-│   └── detectors/
+├── recognition/     # 人脸/微笑/手电筒检测 worker + 模型 (LFS)
+│   ├── detectors/   # 检测器与 worker（人脸、微笑、手电筒）
+│   ├── tracking/    # 人脸跟踪 (FaceTracker)
+│   └── models/      # MediaPipe/ImageNet 模型 (Git LFS)
 ├── ui/              # main_window.ui + generated/
 ├── widgets/         # OverlayLabel
 ├── windows/         # MainWindow
-├── utils/           # LatestValueMailbox, lerp, smooth, convert
+├── utils/           # LatestValueMailbox, lerp, smooth, convert, FpsMeter
 ├── resources/       # 图标、图片、qrc
 └── smile_app.py     # 应用 + 线程编排
 
@@ -111,7 +115,7 @@ cd smile
 uv sync
 ```
 
-模型（`blaze_face_short_range.tflite`、`face_landmarker.task`）存储在 Git LFS 中，如果安装了 LFS，克隆时会自动拉取：
+模型（`blaze_face_short_range.tflite`、`face_landmarker.task`、`mobilenet_v2_1.0_224.tflite`）存储在 Git LFS 中，如果安装了 LFS，克隆时会自动拉取：
 
 ```bash
 git lfs install
@@ -192,7 +196,7 @@ okular build/README.pdf
 
 ## 架构
 
-应用使用三线程的异步实时流水线：
+应用使用四线程的异步实时流水线：
 
 ```text
                 ┌────────────────────┐
@@ -217,6 +221,15 @@ okular build/README.pdf
                                    Qt Main Thread
 ```
 
+手电筒检测运行在独立的 worker 中，与人脸检测并行：
+
+```text
+ Camera Worker ── frame_ready ──▶ Flashlight Detection Worker
+                                       │ result
+                                       ▼
+                                 Qt Main Thread (黄色框)
+```
+
 核心思想：
 
 - 摄像头采集永远不会被检测阻塞
@@ -225,6 +238,10 @@ okular build/README.pdf
 - 故意丢弃过期帧以降低延迟
 - 人脸坐标以归一化形式存储（`0..1`）
 - 所有 Qt 渲染都在主 UI 线程中完成
+
+### 人脸跟踪与平滑
+
+人脸 worker 会在帧之间保留检测结果：通过基于中心的贪婪匹配将检测到的人脸框与轨迹关联，并对每个框进行指数平滑（EMA）。这消除了检测不稳定带来的抖动与闪烁，人脸消失后轨迹仍能存活几帧（`max_lost`）。
 
 ### 微笑检测
 
@@ -237,6 +254,15 @@ okular build/README.pdf
 
 参考关键点 —— MediaPipe FaceMesh 关键点索引：`13`/`14`（唇心）、`61`/`291`（嘴角）、`33`/`263`（外眼角）。
 
+### 手电筒检测
+
+手电筒 worker 是一个"图一乐"的混合启发式方法：
+
+- **设备存在性**：将帧（400×224）送入 ImageNet 分类器 MobileNet V2；如果 top-5 中出现 `torch`/`flashlight` 类别且评分 ≥ `0.03`，则认为检测到手电筒——即使关灯也能识别；
+- **亮斑定位**：亮度二值化（阈值 200）+ 连通域 → 面积占帧 0.5–60% 的最大斑块 → 黄色框，并在状态栏显示评分（`🔦`）。
+
+检测评分不会影响微笑评分——这是流水线之上的一个独立小彩蛋。
+
 ---
 
 ## 性能
@@ -245,7 +271,7 @@ okular build/README.pdf
 
 - ~20-30 FPS 摄像头预览
 - 实时人脸与微笑检测
-- 通过 XNNPACK 在 CPU 上推理
+- 手电筒检测（MobileNet V2）通过 XNNPACK 在 CPU 上推理
 
 实际性能取决于：
 

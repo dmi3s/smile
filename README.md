@@ -10,18 +10,17 @@ The project grabs frames from the webcam, runs face and smile detection in separ
 Current state:
 
 - realtime webcam preview
-- face detection (multi-face)
+- face detection (multi-face) + box tracking and smoothing
 - smile detection (score 0..1 + emoji status)
-- overlay rendering
-- three-thread pipeline
+- flashlight-device detection (ImageNet classifier + bright spot)
+- overlay rendering with face and flashlight boxes
+- FPS metrics (cam · face · smile · render) in the status bar
 - normalized face coordinates
 - graceful thread shutdown
 
 Planned:
 
-- face smoothing/tracking
 - camera settings UI
-- FPS metrics
 - camera reconnect handling
 
 ---
@@ -49,7 +48,10 @@ Tools:
 - Realtime webcam capture
 - Face detection via MediaPipe
 - Smile detection via FaceLandmarker: `openness` (mouth opening) + `spread` (mouth width / inter-eye distance), calibrated thresholds
-- Three worker threads (camera → face → smile) on a shared mailbox mechanism
+- Face smoothing and tracking: greedy center-based matching + EMA, boxes stop jittering between frames
+- Flashlight detection: ImageNet classifier (MobileNet V2, `torch` class — works even when the light is off) + bright-lens localization → yellow box
+- FPS metrics in the status bar: cam · face · smile · render
+- Four worker threads (camera → face → smile + flashlight in parallel) on a shared mailbox mechanism
 - UI-thread-safe rendering via QPainter
 - Normalized bounding boxes (0..1)
 - Stale-frame drop strategy for low latency
@@ -64,12 +66,14 @@ Tools:
 ```text
 src/smile/
 ├── camera/          # CameraWorker, Frame
-├── recognition/     # face/smile detection workers + models (LFS)
-│   └── detectors/
+├── recognition/     # face/smile/flashlight detection workers + models (LFS)
+│   ├── detectors/   # detectors and workers (face, smile, flashlight)
+│   ├── tracking/    # face tracking (FaceTracker)
+│   └── models/      # MediaPipe/ImageNet models (Git LFS)
 ├── ui/              # main_window.ui + generated/
 ├── widgets/         # OverlayLabel
 ├── windows/         # MainWindow
-├── utils/           # LatestValueMailbox, lerp, smooth, convert
+├── utils/           # LatestValueMailbox, lerp, smooth, convert, FpsMeter
 ├── resources/       # icons, images, qrc
 └── smile_app.py     # app + thread orchestration
 
@@ -111,7 +115,7 @@ Install dependencies:
 uv sync
 ```
 
-Models (`blaze_face_short_range.tflite`, `face_landmarker.task`) are stored in Git LFS and are pulled automatically on clone if LFS is installed:
+Models (`blaze_face_short_range.tflite`, `face_landmarker.task`, `mobilenet_v2_1.0_224.tflite`) are stored in Git LFS and are pulled automatically on clone if LFS is installed:
 
 ```bash
 git lfs install
@@ -192,7 +196,7 @@ okular build/README.pdf
 
 ## Architecture
 
-The app uses an asynchronous realtime pipeline of three threads:
+The app uses an asynchronous realtime pipeline of four threads:
 
 ```text
                 ┌────────────────────┐
@@ -217,6 +221,15 @@ The app uses an asynchronous realtime pipeline of three threads:
                                    Qt Main Thread
 ```
 
+Flashlight detection runs in its own worker, in parallel with face detection:
+
+```text
+ Camera Worker ── frame_ready ──▶ Flashlight Detection Worker
+                                       │ result
+                                       ▼
+                                 Qt Main Thread (yellow box)
+```
+
 Key ideas:
 
 - camera capture is never blocked by detection
@@ -225,6 +238,10 @@ Key ideas:
 - stale frames are intentionally dropped to reduce latency
 - face coordinates are stored normalized (`0..1`)
 - all Qt rendering happens on the main UI thread
+
+### Face tracking and smoothing
+
+The face worker keeps the detection result between frames: detected boxes are matched to tracks by a greedy center-based matching, and each box is smoothed exponentially (EMA). This removes jitter and flicker from unstable detection, and a track survives a few frames after the face disappears (`max_lost`).
 
 ### Smile detection
 
@@ -237,6 +254,15 @@ The score `max(openness, spread)` ∈ [0, 1], thresholds calibrated on real came
 
 Reference points — MediaPipe FaceMesh landmark indices: `13`/`14` (lip centers), `61`/`291` (mouth corners), `33`/`263` (outer eye corners).
 
+### Flashlight detection
+
+The flashlight worker is a hybrid heuristic "for fun":
+
+- **device presence**: the frame (400×224) goes through the ImageNet classifier MobileNet V2; if any of the top-5 classes are `torch`/`flashlight` with score ≥ `0.03`, a flashlight is considered found — this works even when the light is off;
+- **bright-lens localization**: brightness binarization (threshold 200) + connected components → the largest blob of area 0.5–60% of the frame → yellow box and score in the status bar (`🔦`).
+
+The detection score does not affect the smile score — it is an independent gag on top of the pipeline.
+
 ---
 
 ## Performance
@@ -245,7 +271,7 @@ On a Linux desktop:
 
 - ~20-30 FPS webcam preview
 - realtime face and smile detection
-- CPU inference via XNNPACK
+- flashlight detection (MobileNet V2) on CPU via XNNPACK
 
 Actual performance depends on:
 
