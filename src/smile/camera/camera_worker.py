@@ -17,7 +17,6 @@ class CameraWorker(QObject):
 
     frame_ready = Signal(Frame)
     camera_error = Signal(str)
-    camera_started = Signal()
 
     def __init__(self):
         super().__init__()
@@ -42,8 +41,6 @@ class CameraWorker(QObject):
             return
 
         self._setup_camera()
-
-        self.camera_started.emit()
 
         logger.info("Started")
 

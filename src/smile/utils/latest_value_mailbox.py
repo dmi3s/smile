@@ -1,7 +1,4 @@
-from collections.abc import Generator
-from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any
 
 
 @dataclass(slots=True)
@@ -56,8 +53,8 @@ class LatestValueMailbox[T]:
         self._busy = False
 
     @property
-    def can_schedule(self) -> bool:
-        return self._running and not self._busy and self._pending_data is not None
+    def busy(self) -> bool:
+        return self._busy
 
     def try_start(self) -> bool:
         if not self._running:
@@ -72,10 +69,6 @@ class LatestValueMailbox[T]:
         self._busy = True
         return True
 
-    @property
-    def busy(self) -> bool:
-        return self._busy
-
     def complete_and_should_continue(self) -> bool:
         self.stop_working()
         return self.try_start()
@@ -84,10 +77,6 @@ class LatestValueMailbox[T]:
         assert self._running
 
         self._pending_data = data
-
-    @property
-    def has_pending_data(self) -> bool:
-        return self._pending_data is not None
 
     def extract_data(self) -> T | None:
         # assert self._running
@@ -98,18 +87,3 @@ class LatestValueMailbox[T]:
         self._pending_data = None
 
         return data
-
-    @contextmanager
-    def work(self) -> Generator[None, Any, None]:
-        self.start_working()
-        try:
-            yield
-        finally:
-            self.stop_working()
-
-    @contextmanager
-    def active(self) -> Generator[None, Any, None]:
-        try:
-            yield
-        finally:
-            self.stop_working()
