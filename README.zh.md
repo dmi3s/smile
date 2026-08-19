@@ -324,7 +324,7 @@ SmileDetectionWorker ──SmileDetectionResult──▶ MainWindow.update_smile
 6. **日志中重复的 `Shutdown completed`** —— 之前：`shutdown()` 在信号退出时触发两次（`smile_app.py:70-72, 74`）。**已解决**：加守卫标志并移除 `processEvents()` 造成的重入（`7a6df3d`）。
 7. **摄像头故障后无法重启** —— `camera_error` → 模态弹窗，应用实际上变成死状态。
 8. **CI 中的 `uv audit --preview-features audit`** —— 是预览标志，uv 升级后可能失效。
-9. **修复后版本未提升** —— 0.1.5 该发了（SIGTERM 处理 + `corner_lift`）。
+9. **修复后版本未提升** —— 之前：0.1.5 该发了（SIGTERM 处理 + `corner_lift`）。**已解决**：提升到 0.1.5。
 10. 小问题：测试会窥探私有属性（`label._image`），`convert.py`/`lerp.py` 是没有独立测试的辅助工具。
 
 ### 建议（按优先级）
@@ -333,7 +333,7 @@ SmileDetectionWorker ──SmileDetectionResult──▶ MainWindow.update_smile
 2. ~~为 QImage 拷贝帧，或交替使用两个缓冲区~~ —— **已完成**：在源头做 `Frame.create_copy` 快照
 3. ~~健壮的日志路径~~ —— **已完成**：启动时创建 `logs/`（`77fa726`）
 4. ~~移除死代码、修复重复的 `shutdown`~~ —— **已完成**（`4952b41`、`7a6df3d`）
-5. 提升到 0.1.5 并发布 —— 仍待完成
+5. ~~提升到 0.1.5 并发布~~ —— **已完成**：版本 0.1.5
 
 ---
 
