@@ -11,6 +11,7 @@ from smile.camera.frame import Frame
 from smile.recognition.detectors.face_detection import FaceDetectionResult
 from smile.recognition.detectors.smile_detection import SmileDetectionResult
 from smile.ui.generated.ui_main_window import Ui_MainWindow
+from smile.utils.fps_meter import FpsMeter
 from smile.utils.smooth import ExponentialJitterSmoother
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,12 @@ class MainWindow(QMainWindow):
         )
         self.installEventFilter(self)
         self._smile_smoother = ExponentialJitterSmoother(alpha=0.3)
+        self._fps_capture = FpsMeter()
+        self._fps_face = FpsMeter()
+        self._fps_smile = FpsMeter()
+        self._fps_render = FpsMeter()
+        self._smile_status_text = "🖖"
+        self.ui.video_label.rendered.connect(self._on_rendered)
 
         self.ui.screenshot_button.clicked.connect(self._take_screenshot)
 
@@ -91,28 +98,46 @@ class MainWindow(QMainWindow):
             frame.timestamp_ns,
             True,
         )
+        self._fps_capture.update(frame.timestamp_ns)
+        self._refresh_statusbar()
 
     @Slot(FaceDetectionResult)
     def update_face_recognition(self, detection_result: FaceDetectionResult) -> None:
+        self._fps_face.update()
         self._face_detection_result = detection_result
 
     @Slot(SmileDetectionResult)
     def update_smile_status(self, smile_status: SmileDetectionResult) -> None:
         logger.debug(f"update_smile_status: {smile_status.smile_scores}")
+        self._fps_smile.update()
         if not smile_status.smile_scores:
             self._smile_smoother.reset()
-            self.ui.smile_label.setText("🖖")
-            self.ui.statusbar.showMessage("🖖 no face")
-            return
-        best = self._smile_smoother.update(max(smile_status.smile_scores))
-        if best >= 0.60:
-            emoji = "😄"
-        elif best >= 0.15:
-            emoji = "😊"
+            emoji = "🖖"
+            self._smile_status_text = "🖖 no face"
         else:
-            emoji = "😐"
+            best = self._smile_smoother.update(max(smile_status.smile_scores))
+            if best >= 0.60:
+                emoji = "😄"
+            elif best >= 0.15:
+                emoji = "😊"
+            else:
+                emoji = "😐"
+            self._smile_status_text = f"{emoji} smile={best:.2f}"
         self.ui.smile_label.setText(emoji)
-        self.ui.statusbar.showMessage(f"{emoji} smile={best:.2f}")
+        self._refresh_statusbar()
+
+    def _refresh_statusbar(self) -> None:
+        fps_text = (
+            f"cam {self._fps_capture.fps:.0f} · "
+            f"face {self._fps_face.fps:.0f} · "
+            f"smile {self._fps_smile.fps:.0f} · "
+            f"render {self._fps_render.fps:.0f} fps"
+        )
+        self.ui.statusbar.showMessage(f"{self._smile_status_text}  |  {fps_text}")
+
+    @Slot()
+    def _on_rendered(self) -> None:
+        self._fps_render.update()
 
     @Slot(str)
     def camera_worker_error(self, msg: str) -> None:

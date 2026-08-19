@@ -1,5 +1,5 @@
 import numpy as np
-from PySide6.QtCore import QRect, Qt
+from PySide6.QtCore import QRect, Qt, Signal
 from PySide6.QtGui import QColor, QImage, QPainter, QPen
 from PySide6.QtWidgets import QLabel
 
@@ -9,6 +9,8 @@ from smile.utils.smooth import FloatSmoother
 
 
 class OverlayLabel(QLabel):
+    rendered = Signal()
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._image: QImage | None = None
@@ -95,3 +97,5 @@ class OverlayLabel(QLabel):
                     pen = QPen(QColor("lime"), 2)
                     p.setPen(pen)
                     p.drawText(10, 10, f"FPS: {fps:.1f}")
+
+        self.rendered.emit()

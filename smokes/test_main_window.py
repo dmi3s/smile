@@ -118,3 +118,21 @@ def test_screenshot_saves_to_smile_dir(qapp, tmp_path, monkeypatch):
     files = list(tmp_path.glob("smile-*.png"))
     assert len(files) == 1
     assert files[0].stat().st_size > 0
+
+
+def test_statusbar_shows_smile_and_fps(qapp):
+    window = MainWindow()
+    window.show()
+
+    for i in range(5):
+        window.update_frame(_frame(i, 1_000_000_000 + i * 50_000_000))
+
+    window.update_face_recognition(
+        FaceDetectionResult(faces=(), small_frame_rgb=None, frame_id=0)
+    )
+    window.update_smile_status(SmileDetectionResult(smile_scores=(0.8,), frame_id=1))
+
+    text = window.ui.statusbar.currentMessage()
+    assert "smile=0.80" in text
+    assert "cam 20" in text
+    assert "fps" in text
