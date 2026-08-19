@@ -90,8 +90,10 @@ class CameraWorker(QObject):
 
         timestamp_ns = time.monotonic_ns()
 
-        bgr_frame.flags.writeable = False
-        frame = Frame.create_share(bgr_frame, self._frame_count, timestamp_ns)
+        # Copy once at the source: the Frame owns a private read-only snapshot,
+        # so the GUI (QImage) and the CV workers never read a half-overwritten
+        # buffer.
+        frame = Frame.create_copy(bgr_frame, self._frame_count, timestamp_ns)
 
         self._frame_count += 1
 

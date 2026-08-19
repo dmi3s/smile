@@ -12,16 +12,23 @@ def _make_frame() -> Frame:
     return Frame.create_share(raw, 0, 1)
 
 
-def test_share_does_not_copy():
+def test_share_keeps_same_buffer():
     frame = _make_frame()
     assert frame.image.flags.writeable is False
     assert frame.image is frame.image  # share keeps the same buffer
 
 
-def test_share_buffers_survive_consumer_path(qapp):
-    frame = _make_frame()
-    original = frame.image
+def test_copy_is_private_snapshot(qapp):
+    raw = np.random.default_rng(7).integers(0, 256, (448, 800, 3), dtype=np.uint8)
+    original = raw.copy()
+    frame = Frame.create_copy(raw, 0, 1)
 
+    # mutating the source after capture must not affect the frame
+    raw[:] = 0
+    np.testing.assert_array_equal(frame.image, original)
+    assert frame.image.flags.writeable is False
+
+    # consumers read the snapshot without corrupting it
     small = cv2.resize(
         frame.image, dsize=(0, 0), fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA
     )
@@ -39,6 +46,4 @@ def test_share_buffers_survive_consumer_path(qapp):
     assert pixmap.size().width() == w
     assert not pixmap.isNull()
 
-    # consumers must not mutate the shared buffer
-    assert frame.image is original
-    assert frame.image.flags.writeable is False
+    np.testing.assert_array_equal(frame.image, original)

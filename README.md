@@ -277,7 +277,7 @@ SmileDetectionWorker ──SmileDetectionResult──▶ MainWindow.update_smile
 
 ### Что сделано хорошо
 
-- **Нулевое копирование** на горячем пути: `writeable=False` + `Frame.create_share`, QImage без копии, кадр 800x448 → 400x224 resize один раз
+- **Снапшот кадра в источнике**: `Frame.create_copy` в camera-воркере — QImage и CV-воркеры читают приватную read-only копию, гонка перезаписи буфера исключена (корректность > скорость)
 - **Mailbox latest-wins** — правильная модель для realtime (латентность важнее полноты)
 - Чистая структура: детекторы отделены от воркеров, сглаживание/лерпы в utils
 - **CI полный**: LFS-checkout, gen-ui, ruff+format, mypy, pytest, `uv audit`, `uv build` (`ci.yml`)
@@ -286,7 +286,7 @@ SmileDetectionWorker ──SmileDetectionResult──▶ MainWindow.update_smile
 
 ### Проблемы и риски
 
-1. **Гонка на общем буфере камеры** — `overlay_label.py:33`: QImage держит ссылку на буфер камеры, а OpenCV перезаписывает его на следующем `read()` (`camera_worker.py:87-97`). Возможны разрывы/артефакты кадра при отрисовке. `writeable=False` здесь не защищает.
+1. **Гонка на общем буфере камеры** — было: `overlay_label.py:33` QImage держит ссылку на буфер камеры, а OpenCV перезаписывает его на следующем `read()` (`camera_worker.py:87-97`), возможны рваные кадры. **Решено**: копия в источнике (`Frame.create_copy`), Frame владеет приватным снапшотом.
 2. **`corner_lift` вычисляется, но не участвует в скоре** — оскал/открытый рот без улыбки по-прежнему даёт эмодзи (`smile_detection.py:72, 88-90`). Это и есть незакрытая задача.
 3. **Логирование хрупкое** — `__main__.py:15`: FileHandler пишет в `logs/smile-*.log` без создания директории: при запуске из другого CWD или после `pip install` приложение упадёт на старте.
 4. **Мёртвый код в mailbox** — `can_schedule`, `has_pending_data`, `active()` нигде не используются (`latest_value_mailbox.py:59, 89, 111`).
@@ -300,7 +300,7 @@ SmileDetectionWorker ──SmileDetectionResult──▶ MainWindow.update_smile
 ### Рекомендации (по приоритету)
 
 1. Ввести `corner_lift` в скор (гейт для openness: `open_score * lift_score`) — закрывает ложные срабатывания на оскал
-2. Копировать кадр для QImage ИЛИ чередовать два буфера — устранить гонку отрисовки
+2. ~~Копировать кадр для QImage ИЛИ чередовать два буфера~~ — **сделано**: снапшот `Frame.create_copy` в источнике
 3. Робастный путь логов (создавать `logs/` или использовать platformdirs)
 4. Убрать мёртвый код, решить двойной `shutdown`
 5. Бамп до 0.1.5 и зарелизить
