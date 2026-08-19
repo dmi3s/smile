@@ -1,33 +1,46 @@
 #direction: down
 
-app: "SmileApp (QApplication)\nсоздаёт воркеры и 3 потока, оркестрация,\nидемпотентный shutdown, SIGINT/SIGTERM"
-threads: "3 × QThread\ncamera_worker / face_worker / smile_worker"
+app: "SmileApp (QApplication)\nсоздаёт воркеры и 4 потока, оркестрация,\nидемпотентный shutdown, SIGINT/SIGTERM"
+threads: "4 × QThread\ncamera_worker / face_worker / smile_worker / flashlight_worker"
 camera: "CameraWorker\nQTimer @ ~20 fps → read() → emit frame_ready"
 frame: "Frame\nfrozen-датакласс: image, frame_id, timestamp_ns;\ncreate_share / create_copy (read-only)"
 face: "FaceDetectionWorker\nFaceDetector VIDEO mode,\n0.5x RGB, нормализация рамок (0..1)"
+tracker: "FaceTracker\nжадный матчинг по центру,\nEMA рамок, max_lost"
 smile: "SmileDetectionWorker\nFaceLandmarker VIDEO mode,\nsmile_score() по ландмаркам рта"
 alg: "smile_detection.py\nmouth_features(), smile_score(),\nпороги OPEN/SPREAD/LIFT"
+flashlight: "FlashlightDetectionWorker\nImageClassifier MobileNet V2 VIDEO mode,\n400×224 + detect_bright_spot()"
+falg: "flashlight_detection.py\nis_flashlight() (torch ≥ 0.03),\ndetect_bright_spot() (порог 200,\nплощадь 0.5–60%)"
 mailbox: "LatestValueMailbox<T>\nlatest-wins, busy-флаг"
-window: "MainWindow\nслоты update_frame / update_face_recognition /\nupdate_smile_status; screenshot; statusbar"
-overlay: "OverlayLabel\nQPainter: видео + рамки лиц + FPS"
+window: "MainWindow\nслоты update_frame / update_face_recognition /\nupdate_smile_status / update_flashlight;\nscreenshot; statusbar (FPS + 🔦)"
+overlay: "OverlayLabel\nQPainter: видео + рамки лиц + жёлтая рамка фонарика"
 smooth: "ExponentialJitterSmoother\nEMA α=0.3 для скора улыбки"
-models: "blaze_face_short_range.tflite\nface_landmarker.task (Git LFS)"
+fps: "FpsMeter\nEMA-метры cam · face · smile · render"
+models: "blaze_face_short_range.tflite\nface_landmarker.task\nmobilenet_v2_1.0_224.tflite (Git LFS)"
 
 app -> threads: "moveToThread + th.started.connect(wakeup)"
 app -> camera
 app -> face
 app -> smile
+app -> flashlight
 app -> window: "создаёт MainWindow"
 camera -> frame: "create_copy() — снимок кадра"
 frame -> face: "new_frame(frame)"
+frame -> flashlight: "new_frame(frame)"
+face -> tracker: "рамки → треки"
+tracker -> face
 face -> alg: "geometry ландмарков"
 smile -> alg
+flashlight -> falg
 face -> mailbox: "new_data / try_start / extract_data"
 smile -> mailbox
+flashlight -> mailbox
 face -> models: "FaceDetector"
 smile -> models: "FaceLandmarker"
+flashlight -> models: "ImageClassifier"
 camera -> window: "frame_ready (update_frame)"
 face -> window: "result (update_face_recognition)"
 smile -> window: "result (update_smile_status)"
+flashlight -> window: "result (update_flashlight)"
 window -> overlay: "set_frame(...)"
 window -> smooth: "update(score)"
+window -> fps: "update(timestamp)"

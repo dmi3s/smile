@@ -3,17 +3,22 @@ shape: sequence_diagram
 cw: Camera Worker
 fw: Face Detection Worker
 sw: Smile Detection Worker
+fw2: Flashlight Detection Worker
 gui: Main Window
 
 loop Continuous Pipeline (new data overwrites pending) {
     cw -> gui: frame_ready (update_frame)
     cw -> fw: frame_ready (new_frame)
+    cw -> fw2: frame_ready (new_frame)
     fw -> fw: mailbox -> keep latest frame
-    fw -> fw: detect_for_video (small RGB, 0.5x)
+    fw -> fw: detect_for_video (small RGB, 0.5x) + FaceTracker
     fw -> gui: result (update_face_recognition)
     fw -> sw: result (new_face_detection_result)
     sw -> sw: mailbox -> keep latest result
-    sw -> sw: process (stub, time.sleep)
-    sw -> gui: progress (frame delay)
+    sw -> sw: FaceLandmarker -> smile_score
+    sw -> gui: result (update_smile_status)
+    fw2 -> fw2: mailbox -> keep latest frame
+    fw2 -> fw2: MobileNet V2 + bright spot
+    fw2 -> gui: result (update_flashlight)
     gui -> gui: redraw (overlay + FPS)
 }

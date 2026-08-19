@@ -4,7 +4,7 @@ frame_box: "Frame — один кадр (копия на источнике)"
 camera: "CameraWorker\ncv2.VideoCapture.read() (BGR)"
 copy: "Frame.create_copy()\nimage.copy() + writeable=False"
 qimage: "QImage zero-copy → OverlayLabel"
-cv: "CV-воркеры: face / smile"
+cv: "CV-воркеры: face / smile / flashlight"
 safe: "рваных кадров нет:\nбуфер никто не перезаписывает"
 frame_box.camera -> frame_box.copy: "BGR frame"
 frame_box.copy -> frame_box.qimage

@@ -2,20 +2,27 @@
 
 camera: "CameraWorker\n(thread: camera_worker)"
 frame: "Frame\ncreate_copy() → read-only snapshot"
-overlay: "OverlayLabel\nUI: видео + рамки лиц"
-face: "FaceDetectionWorker\n(thread: face_worker)\nFaceDetector VIDEO mode"
+overlay: "OverlayLabel\nUI: видео + рамки лиц + рамка фонарика"
+face: "FaceDetectionWorker\n(thread: face_worker)\nFaceDetector VIDEO mode\n+ FaceTracker (матчинг + EMA)"
 face_result: "FaceDetectionResult\nfaces[] (0..1), small_frame_rgb, frame_id"
 ui_boxes: "MainWindow\nupdate_face_recognition"
 smile: "SmileDetectionWorker\n(thread: smile_worker)\nFaceLandmarker 478 pts"
 smile_result: "SmileDetectionResult\nsmile_scores[] (0..1), frame_id"
 ui_smile: "MainWindow\nupdate_smile_status\nEMA α=0.3 → 🖖/😐/😊/😄"
+flashlight: "FlashlightDetectionWorker\n(thread: flashlight_worker)\nMobileNet V2 ImageClassifier\n+ detect_bright_spot"
+flashlight_result: "FlashlightDetectionResult\ndetected, score, bright_bbox, brightness"
+ui_flashlight: "MainWindow\nupdate_flashlight\n🔦 в статусбаре"
 
 camera -> frame: "кадр 800x448"
 frame -> overlay: "QImage (zero-copy view)"
 frame -> face: "new_frame(frame)"
-face -> face_result: "0.5x RGB → detect_for_video"
+frame -> flashlight: "new_frame(frame)"
+face -> face_result: "0.5x RGB → detect_for_video\n+ трекинг рамок"
 face_result -> ui_boxes
 face_result -> smile: "new_face_detection_result\n(small_frame_rgb)"
 smile -> smile_result: "mouth_features → smile_score\n(openness, spread, corner_lift)"
 smile_result -> ui_smile
+flashlight -> flashlight_result: "классификация (torch ≥ 0.03)\n+ яркое пятно (порог 200)"
+flashlight_result -> ui_flashlight
 ui_boxes -> overlay: "рамки на текущем кадре"
+ui_flashlight -> overlay: "жёлтая рамка на текущем кадре"

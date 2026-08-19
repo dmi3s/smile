@@ -5,15 +5,20 @@ camera: CameraWorker (camera_worker)
 ui: UI thread (MainWindow)
 face: FaceDetectionWorker (face_worker)
 smile: SmileDetectionWorker (smile_worker)
+flashlight: FlashlightDetectionWorker (flashlight_worker)
 
 loop каждые ~50 мс (QTimer 20 fps) {
   camera -> ui: frame_ready(frame) → update_frame (overlay)
   camera -> face: frame_ready(frame) → new_frame
+  camera -> flashlight: frame_ready(frame) → new_frame
   face -> face: mailbox: latest wins
-  face -> face: 0.5x RGB → detect_for_video
+  face -> face: 0.5x RGB → detect_for_video + FaceTracker
   face -> ui: result → update_face_recognition
   face -> smile: result → new_face_detection_result
   smile -> smile: mailbox: latest wins
   smile -> smile: FaceLandmarker → smile_score
   smile -> ui: result → update_smile_status (EMA → эмодзи)
+  flashlight -> flashlight: mailbox: latest wins
+  flashlight -> flashlight: MobileNet V2 → is_flashlight + bright spot
+  flashlight -> ui: result → update_flashlight (жёлтая рамка + 🔦)
 }
