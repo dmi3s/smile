@@ -164,6 +164,32 @@ uv run pytest smokes  # 冒烟测试
 
 ---
 
+## 文档
+
+架构详解与图表（输入缓冲区、流水线、类、实时循环）见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。D2 源文件与生成的 SVG 位于 `docs/`。
+
+构建 PDF（Typst），在 `docs/` 目录下：
+
+```bash
+just build            # 一次性构建 → build/README.pdf
+just r                # watch 模式：.typ/.d2 变化时自动重新构建
+```
+
+或直接使用 typst：
+
+```bash
+typst compile README.typ build/README.pdf
+typst watch README.typ build/README.pdf
+```
+
+打开 PDF（watch 模式下 okular 会自动刷新）：
+
+```bash
+okular build/README.pdf
+```
+
+---
+
 ## 架构
 
 应用使用三线程的异步实时流水线：

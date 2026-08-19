@@ -164,6 +164,32 @@ uv run pytest smokes  # smoke-тесты
 
 ---
 
+## Документация
+
+Разбор архитектуры с диаграммами (буфер ввода, конвейер, классы, realtime-цикл) — [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). D2-исходники и собранные SVG — в `docs/`.
+
+Сборка PDF (Typst), каталог `docs/`:
+
+```bash
+just build            # разовая сборка → build/README.pdf
+just r                # watch-режим: пересборка при изменении .typ/.d2
+```
+
+Или напрямую typst:
+
+```bash
+typst compile README.typ build/README.pdf
+typst watch README.typ build/README.pdf
+```
+
+Открытие PDF (okular обновляет окно в watch-режиме):
+
+```bash
+okular build/README.pdf
+```
+
+---
+
 ## Архитектура
 
 Приложение использует асинхронный realtime-конвейер из трёх потоков:

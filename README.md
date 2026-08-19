@@ -164,6 +164,32 @@ uv run pytest smokes  # smoke tests
 
 ---
 
+## Documentation
+
+Architecture breakdown with diagrams (input buffer, pipeline, classes, realtime loop) — [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). D2 sources and built SVGs live in `docs/`.
+
+Building the PDF (Typst), from the `docs/` directory:
+
+```bash
+just build            # one-off build → build/README.pdf
+just r                # watch mode: rebuild on .typ/.d2 changes
+```
+
+Or typst directly:
+
+```bash
+typst compile README.typ build/README.pdf
+typst watch README.typ build/README.pdf
+```
+
+Opening the PDF (okular reloads the window in watch mode):
+
+```bash
+okular build/README.pdf
+```
+
+---
+
 ## Architecture
 
 The app uses an asynchronous realtime pipeline of three threads:
