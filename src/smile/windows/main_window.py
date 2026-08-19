@@ -1,4 +1,6 @@
 import logging
+from datetime import datetime
+from pathlib import Path
 from typing import cast, override
 
 from PySide6.QtCore import QEvent, QObject, QSize, Qt, Slot
@@ -13,6 +15,8 @@ from smile.utils.smooth import ExponentialJitterSmoother
 
 logger = logging.getLogger(__name__)
 
+SCREENSHOT_DIR = Path.home() / "Pictures" / "smile"
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -26,6 +30,8 @@ class MainWindow(QMainWindow):
         )
         self.installEventFilter(self)
         self._smile_smoother = ExponentialJitterSmoother(alpha=0.3)
+
+        self.ui.screenshot_button.clicked.connect(self._take_screenshot)
 
     @override
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:
@@ -42,6 +48,30 @@ class MainWindow(QMainWindow):
             return True
         else:
             return super().eventFilter(obj, event)
+
+    def _take_screenshot(self) -> None:
+        try:
+            SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            logger.error(f"Cannot create screenshot directory: {e}")
+            self.ui.statusbar.showMessage("⚠ Cannot create screenshot directory")
+            return
+
+        stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        path = SCREENSHOT_DIR / f"smile-{stamp}.png"
+        counter = 1
+        while path.exists():
+            path = SCREENSHOT_DIR / f"smile-{stamp}-{counter}.png"
+            counter += 1
+
+        pixmap = self.grab()
+        if not pixmap.save(str(path)):
+            logger.error("Failed to save screenshot")
+            self.ui.statusbar.showMessage("⚠ Screenshot save failed")
+            return
+
+        logger.info(f"Screenshot saved: {path}")
+        self.ui.statusbar.showMessage(f"Saved {path.name}")
 
     @Slot(Frame)
     def update_frame(self, frame: Frame) -> None:

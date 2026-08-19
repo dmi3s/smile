@@ -7,6 +7,7 @@ from smile.recognition.detectors.face_detection import (
     FaceDetectionResult,
 )
 from smile.recognition.detectors.smile_detection import SmileDetectionResult
+from smile.windows import main_window
 from smile.windows.main_window import MainWindow
 
 
@@ -104,3 +105,16 @@ def test_smile_status_resets_on_no_face(qapp):
     # face lost -> smoother resets, emoji goes back to no-face state immediately
     window.update_smile_status(SmileDetectionResult(smile_scores=(), frame_id=6))
     assert window.ui.smile_label.text() == "🖖"
+
+
+def test_screenshot_saves_to_smile_dir(qapp, tmp_path, monkeypatch):
+    monkeypatch.setattr(main_window, "SCREENSHOT_DIR", tmp_path)
+    window = MainWindow()
+    window.show()
+    window.update_frame(_frame(0, 1_000_000_000))
+
+    window._take_screenshot()
+
+    files = list(tmp_path.glob("smile-*.png"))
+    assert len(files) == 1
+    assert files[0].stat().st_size > 0
