@@ -107,7 +107,7 @@ class MainWindow(QMainWindow):
         best = self._smile_smoother.update(max(smile_status.smile_scores))
         if best >= 0.60:
             emoji = "😄"
-        elif best >= 0.20:
+        elif best >= 0.15:
             emoji = "😊"
         else:
             emoji = "😐"

@@ -73,6 +73,18 @@ def _closed_lip_smile() -> list[Point]:
     )
 
 
+def _closed_lip_smile_mid() -> list[Point]:
+    # mouth width 0.144 -> spread 0.72, bottom of the closed-lip smile range
+    return _face(
+        {
+            LEFT_MOUTH_CORNER: (0.428, 0.47),
+            RIGHT_MOUTH_CORNER: (0.572, 0.47),
+            UPPER_LIP_CENTER: (0.50, 0.479),
+            LOWER_LIP_CENTER: (0.50, 0.480),
+        }
+    )
+
+
 def test_neutral_face_scores_zero():
     assert smile_score(_neutral()) == 0.0
 
@@ -87,6 +99,10 @@ def test_grimace_open_mouth_scores_zero():
 
 def test_closed_lip_smile_scores_positive():
     assert smile_score(_closed_lip_smile()) > 0.3
+
+
+def test_closed_lip_smile_mid_range_scores_positive():
+    assert smile_score(_closed_lip_smile_mid()) >= 0.2
 
 
 def test_degenerate_width_does_not_crash():

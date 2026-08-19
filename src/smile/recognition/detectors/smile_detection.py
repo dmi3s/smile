@@ -23,11 +23,11 @@ RIGHT_EYE_OUTER = 263
 #   neutral mouth: openness ~0.005, spread ~0.55-0.65
 #   open-mouth smile: openness 0.25-0.30+
 #   closed-lip smile: spread 0.72-0.78
-# Both metrics fall back below the thresholds on a neutral face, so the
-# score self-resets and the smile indicator disappears.
+# SPREAD_MIN sits below the closed-lip smile range (but above neutral), so a
+# teeth-less smile registers while a neutral mouth still scores zero.
 OPEN_MIN = 0.12
 OPEN_MAX = 0.30
-SPREAD_MIN = 0.72
+SPREAD_MIN = 0.67
 SPREAD_MAX = 0.85
 
 # Corner lift above the lip line, calibrated on real camera data:
