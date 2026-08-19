@@ -30,6 +30,14 @@ OPEN_MAX = 0.30
 SPREAD_MIN = 0.72
 SPREAD_MAX = 0.85
 
+# Corner lift above the lip line, calibrated on real camera data:
+#   neutral: 0.08-0.20, bared-teeth grimace (open mouth, corners down): 0.09-0.15,
+#   genuine smile: 0.20-0.29.
+# The openness term is gated by this lift so that an open mouth without
+# raised corners (grimace, yawn, talking) does not score as a smile.
+LIFT_MIN = 0.18
+LIFT_MAX = 0.28
+
 
 @dataclass(slots=True, frozen=True)
 class SmileFeatures:
@@ -87,7 +95,8 @@ def smile_score(landmarks: Sequence[Point]) -> float:
 
     open_score = _clamp01((features.openness - OPEN_MIN) / (OPEN_MAX - OPEN_MIN))
     spread_score = _clamp01((features.spread - SPREAD_MIN) / (SPREAD_MAX - SPREAD_MIN))
-    return max(open_score, spread_score)
+    lift_gate = _clamp01((features.corner_lift - LIFT_MIN) / (LIFT_MAX - LIFT_MIN))
+    return max(spread_score, open_score * lift_gate)
 
 
 def _clamp01(value: float) -> float:

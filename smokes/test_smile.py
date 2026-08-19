@@ -38,13 +38,25 @@ def _neutral() -> list[Point]:
 
 
 def _open_smile() -> list[Point]:
-    # mouth opens: openness 0.42 -> open_score 1.0
+    # mouth opens wide AND corners pull up: openness 0.67, corner lift 0.33
     return _face(
         {
-            LEFT_MOUTH_CORNER: (0.44, 0.50),
-            RIGHT_MOUTH_CORNER: (0.56, 0.50),
-            UPPER_LIP_CENTER: (0.50, 0.45),
-            LOWER_LIP_CENTER: (0.50, 0.50),
+            LEFT_MOUTH_CORNER: (0.44, 0.44),
+            RIGHT_MOUTH_CORNER: (0.56, 0.44),
+            UPPER_LIP_CENTER: (0.50, 0.44),
+            LOWER_LIP_CENTER: (0.50, 0.52),
+        }
+    )
+
+
+def _grimace() -> list[Point]:
+    # open mouth (openness 0.67) but corners NOT raised: lift 0.17
+    return _face(
+        {
+            LEFT_MOUTH_CORNER: (0.44, 0.46),
+            RIGHT_MOUTH_CORNER: (0.56, 0.46),
+            UPPER_LIP_CENTER: (0.50, 0.44),
+            LOWER_LIP_CENTER: (0.50, 0.52),
         }
     )
 
@@ -53,8 +65,8 @@ def _closed_lip_smile() -> list[Point]:
     # corners pull apart: mouth width 0.16 -> spread 0.80
     return _face(
         {
-            LEFT_MOUTH_CORNER: (0.42, 0.48),
-            RIGHT_MOUTH_CORNER: (0.58, 0.48),
+            LEFT_MOUTH_CORNER: (0.42, 0.47),
+            RIGHT_MOUTH_CORNER: (0.58, 0.47),
             UPPER_LIP_CENTER: (0.50, 0.479),
             LOWER_LIP_CENTER: (0.50, 0.480),
         }
@@ -67,6 +79,10 @@ def test_neutral_face_scores_zero():
 
 def test_open_smile_scores_high():
     assert smile_score(_open_smile()) > 0.5
+
+
+def test_grimace_open_mouth_scores_zero():
+    assert smile_score(_grimace()) == 0.0
 
 
 def test_closed_lip_smile_scores_positive():
