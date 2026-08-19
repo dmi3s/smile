@@ -1,5 +1,6 @@
 import logging
 import traceback
+from dataclasses import replace
 from pathlib import Path
 
 import cv2
@@ -16,6 +17,7 @@ from smile.recognition.detectors.face_detection import (
     FaceBox,
     FaceDetectionResult,
 )
+from smile.recognition.tracking.face_tracker import FaceTracker
 from smile.utils.latest_value_mailbox import LatestValueMailbox
 
 logger = logging.getLogger(__name__)
@@ -43,6 +45,7 @@ class FaceDetectionWorker(QObject):
         self._model_path: Path = model_path
         self._detector: vision.FaceDetector | None = None
         self._mailbox = LatestValueMailbox[Frame]()
+        self._tracker = FaceTracker()
 
         thread_name: str = QThread.currentThread().objectName()
         logger.info(f'Created on thread "{thread_name}"')
@@ -62,6 +65,7 @@ class FaceDetectionWorker(QObject):
             )
             self._detector = vision.FaceDetector.create_from_options(options)
             self._mailbox.wakeup()
+            self._tracker.reset()
         except Exception as e:
             self.error.emit(type(e), e, traceback.format_exc())
             logger.error(f"Init failed: {e}")
@@ -155,6 +159,8 @@ class FaceDetectionWorker(QObject):
                     frame.timestamp_ns,
                 ),
             )
+
+            result = replace(result, faces=self._tracker.update(result.faces))
 
         except BaseException as e:
             exctype: type = type(e)
