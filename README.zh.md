@@ -17,11 +17,11 @@
 - 状态栏中的 FPS 指标（cam · face · smile · render）
 - 归一化的人脸坐标
 - 线程优雅退出
+- 摄像头故障后自动重连（状态栏提示，无需重启应用）
 
 计划中：
 
 - 摄像头设置界面
-- 摄像头重连处理
 
 ---
 
@@ -348,7 +348,7 @@ SmileDetectionWorker ──SmileDetectionResult──▶ MainWindow.update_smile
 4. **mailbox 中的死代码** —— 之前：`can_schedule`、`has_pending_data`、`active()` 从未被使用（`latest_value_mailbox.py:59, 89, 111`）。**已解决**：已删除（`4952b41`）。
 5. **`eventFilter` 吞掉所有按键** —— 对任何 KeyPress 都返回 `True`（`main_window.py:37-42`）；若添加输入框会出问题。
 6. **日志中重复的 `Shutdown completed`** —— 之前：`shutdown()` 在信号退出时触发两次（`smile_app.py:70-72, 74`）。**已解决**：加守卫标志并移除 `processEvents()` 造成的重入（`7a6df3d`）。
-7. **摄像头故障后无法重启** —— `camera_error` → 模态弹窗，应用实际上变成死状态。
+7. **摄像头故障后无法重启** —— 之前：`camera_error` → 模态弹窗，应用实际上变成死状态。**已解决**：`CameraWorker` 进入重连循环（每 2 秒重试，按多个来源查找：上次工作源 → 索引 0..5 → Linux 下 `/dev/video*`，每个都用探测帧验证），状态显示在状态栏（每次故障 `camera_error` 一次，成功后 `camera_recovered`）。
 8. **CI 中的 `uv audit --preview-features audit`** —— 是预览标志，uv 升级后可能失效。
 9. **修复后版本未提升** —— 之前：0.1.5 该发了（SIGTERM 处理 + `corner_lift`）。**已解决**：提升到 0.1.5。
 10. 小问题：测试会窥探私有属性（`label._image`），`convert.py`/`lerp.py` 是没有独立测试的辅助工具。

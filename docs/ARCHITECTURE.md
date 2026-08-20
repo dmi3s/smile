@@ -76,7 +76,7 @@
 |---|---|
 | `SmileApp` | Оркестрация: создаёт воркеры и 4 потока, разводит сигналы, идемпотентный `shutdown()`, выход по SIGINT/SIGTERM |
 | `QThread` ×4 | По одному рабочему потоку на воркер |
-| `CameraWorker` | Захват камеры: `QTimer` → `read()` → `Frame` |
+| `CameraWorker` | Захват камеры: `QTimer` → `read()` → `Frame`; при сбое — цикл переподключения (`RETRY_DELAY_MS`, `camera_error` → `camera_recovered`), поиск по нескольким источникам (последний рабочий → индексы 0..5 → `/dev/video*` на Linux) с пробным кадром, без «мёртвого» приложения |
 | `Frame` | Неизменяемый снимок кадра (`create_share` / `create_copy`) |
 | `FaceDetectionWorker` | `FaceDetector` (VIDEO mode), нормализация рамок, `small_frame_rgb` |
 | `FaceTracker` | Жадный матчинг рамок по центру + EMA-сглаживание, `max_lost` |

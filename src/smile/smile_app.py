@@ -135,6 +135,7 @@ class SmileApp(QApplication):
         self._camera_worker.frame_ready.connect(self._face_worker.new_frame)
         self._camera_worker.frame_ready.connect(self._flashlight_worker.new_frame)
         self._camera_worker.camera_error.connect(self._window.camera_worker_error)
+        self._camera_worker.camera_recovered.connect(self._window.camera_recovered)
 
         self.stop_camera.connect(self._camera_worker.shutdown)
 

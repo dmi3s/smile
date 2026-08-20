@@ -17,11 +17,11 @@ Current state:
 - FPS metrics (cam · face · smile · render) in the status bar
 - normalized face coordinates
 - graceful thread shutdown
+- camera reconnect on failure (status-bar state, no restart needed)
 
 Planned:
 
 - camera settings UI
-- camera reconnect handling
 
 ---
 
@@ -348,7 +348,7 @@ SmileDetectionWorker ──SmileDetectionResult──▶ MainWindow.update_smile
 4. **Dead code in the mailbox** — was: `can_schedule`, `has_pending_data`, `active()` unused (`latest_value_mailbox.py:59, 89, 111`). **Fixed**: removed (`4952b41`).
 5. **`eventFilter` swallows all keys** — returns `True` for any KeyPress (`main_window.py:37-42`); adding an input field would break.
 6. **Double `Shutdown completed`** in logs — was: `shutdown()` ran twice on signal exit (`smile_app.py:70-72, 74`). **Fixed**: guard flag + removed `processEvents()` re-entrancy (`7a6df3d`).
-7. **No camera restart** on failure — `camera_error` → modal box and effectively a dead app.
+7. **No camera restart** on failure — was: `camera_error` → modal box and effectively a dead app. **Fixed**: `CameraWorker` falls into a reconnect loop (2 s retries, discovery across last-known source, indices 0..5 and `/dev/video*` on Linux, each validated with a probe frame) and reports state via the status bar (`camera_error` once per outage, `camera_recovered` on success).
 8. **`uv audit --preview-features audit`** in CI — a preview flag, may break on uv upgrades.
 9. **Version not bumped** after fixes — was: 0.1.5 due (SIGTERM handling + `corner_lift`). **Fixed**: bumped to 0.1.5.
 10. Minor: tests peek into private attributes (`label._image`), and `convert.py`/`lerp.py` are helper utilities without their own tests.

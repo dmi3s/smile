@@ -5,7 +5,7 @@ from typing import cast, override
 
 from PySide6.QtCore import QEvent, QObject, QSize, Qt, Slot
 from PySide6.QtGui import QKeyEvent
-from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
+from PySide6.QtWidgets import QApplication, QMainWindow
 
 from smile.camera.frame import Frame
 from smile.recognition.detectors.face_detection import FaceDetectionResult
@@ -168,11 +168,11 @@ class MainWindow(QMainWindow):
 
     @Slot(str)
     def camera_worker_error(self, msg: str) -> None:
-        QMessageBox.critical(
-            self,
-            "Camera Error",
-            f"{msg}\n\nPlease check camera connection and restart.",
-        )
+        self.ui.statusbar.showMessage(f"⚠ Camera lost: {msg} — reconnecting …")
+
+    @Slot()
+    def camera_recovered(self) -> None:
+        self.ui.statusbar.showMessage("📷 Camera reconnected", 3000)
 
     @Slot(type(BaseException), BaseException, str)
     def smile_worker_error(
