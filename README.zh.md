@@ -367,4 +367,6 @@ _由 AI 助手 **opencode** —— DeepSeek-V4 模型，会话 2026-08-18 ——
 
 ---
 
-[我不愿意，我是被逼的](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fbeauty.ua%2Fuploads%2Fphotos%2Fshares%2F2017.08%2FGettyImages-463098832.jpg&f=1&nofb=1&ipt=b1f740cba3614fef194007873cca9aa05ef9224b4047ab0d2ef97b3ec7b6e418)
+- [我不愿意，我是被逼的](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fbeauty.ua%2Fuploads%2Fphotos%2Fshares%2F2017.08%2FGettyImages-463098832.jpg&f=1&nofb=1&ipt=b1f740cba3614fef194007873cca9aa05ef9224b4047ab0d2ef97b3ec7b6e418)
+- [又逼了我一次](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%2Fid%2FOIP.cavqZCm-BwnI7swWvqBlhQHaFj%3Fpid%3DApi&f=1&ipt=bcd2b798a78c26d0b96368f504a81ecdb09a23c233982ef7d0b3b3ddfe2875ec&ipo=images)
+- [又一次](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse3.mm.bing.net%2Fth%2Fid%2FOIP.S2xVhUnDD56venxfPZRK5wHaH4%3Fr%3D0%26pid%3DApi&f=1&ipt=01ac27b39a8bc0dcb0980bb3757adedcab019b6eacbd2d3c9a3448399f9dfa27)
