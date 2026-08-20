@@ -370,3 +370,65 @@ _Written into history by the AI assistant **opencode** — model DeepSeek-V4, se
 - [Я не хотел, меня заставили](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fbeauty.ua%2Fuploads%2Fphotos%2Fshares%2F2017.08%2FGettyImages-463098832.jpg&f=1&nofb=1&ipt=b1f740cba3614fef194007873cca9aa05ef9224b4047ab0d2ef97b3ec7b6e418)
 - [меня заставили ещё раз](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%2Fid%2FOIP.cavqZCm-BwnI7swWvqBlhQHaFj%3Fpid%3DApi&f=1&ipt=bcd2b798a78c26d0b96368f504a81ecdb09a23c233982ef7d0b3b3ddfe2875ec&ipo=images)
 - [и ещё раз](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse3.mm.bing.net%2Fth%2Fid%2FOIP.S2xVhUnDD56venxfPZRK5wHaH4%3Fr%3D0%26pid%3DApi&f=1&ipt=01ac27b39a8bc0dcb0980bb3757adedcab019b6eacbd2d3c9a3448399f9dfa27)
+
+---
+
+## AI: Follow-up assessment (2026-08-20)
+
+_Second opinion from the AI assistant **opencode**. Code state — `main` @ `22fd159`, tag `v0.1.6`. Written as-is, without sugar, because nobody is going to update this section._
+
+### Does it meet the requirements?
+
+The "Current state" list in this README is honest — every item is real:
+
+- webcam preview ✅, multi-face detection + tracking/smoothing ✅
+- smile score 0..1 + emoji ✅, flashlight detection ✅
+- overlay ✅, FPS metrics ✅, normalized coordinates ✅
+- graceful shutdown ✅, camera reconnect ✅
+
+The single "Planned" item — a camera settings UI — was never implemented. That
+is the whole remaining gap, and it says something about the project.
+
+### The good
+
+- **The realtime model is right.** Latest-wins mailbox, stale-frame dropping,
+  copy-at-source snapshots: the pipeline is small but the concurrency thinking
+  behind it is correct and honest. No fake "async".
+- **Layered and testable.** Pure scoring/tracking/mailbox logic is separated
+  from Qt workers. After the refactor (`MailboxWorker` base) the three workers
+  stopped duplicating the loop. `just check` is green: ruff, mypy, 60 tests.
+- **Testing is meaningful, not ceremonial.** Calibrated smile thresholds,
+  tracker matching, camera reconnect with a fake capture, hybrid flashlight,
+  overlay geometry — these are real behaviors being verified.
+- **CI and hygiene.** LFS models, gen-ui, audit, build, signed tags, graceful
+  SIGINT/SIGTERM. For a hobby experiment this is unusual discipline.
+
+### The bad
+
+- **It is an experiment, not a product.** One screen, no settings, no
+  persistence, no packaging story beyond `uv run smile`. The only planned
+  feature (camera settings UI) never happened.
+- **Over-engineered in places.** Four threads and a mailbox for a smile
+  detector is more machinery than the task needs. It reads as
+  "learning-exercise with a UI attached" rather than "smallest thing that
+  works". Some complexity (torch-classifier flashlight detection) exists for
+  the joke, not for usefulness — which is fine, but it is a joke.
+- **Thresholds are personal.** `OPEN`/`SPREAD`/`LIFT` are calibrated on one
+  author's camera and face. It will work for you; it may not generalize to
+  other hardware, lighting, or faces.
+- **Error UX is minimal.** Worker failures collapse to a status-bar message;
+  there is no log viewer or restart affordance beyond what the camera worker
+  does on its own.
+- **Docs churned.** Three-language sync, plan translations added then removed,
+  an `im-nothing.md` in the repo root. The intent was good; the outcome is a
+  bit messy. Also: this README carries AI memoranda and meme links — charming,
+  but odd for anyone landing here cold.
+
+### Verdict
+
+As a learning project it is genuinely good — better than most. As a deliverable
+it is thin, and it knows it: the README says "simplicity, clarity, dev speed
+over premature optimization" and the code matches that claim. It does exactly
+what it says on the tin, has a real webcam, real detectors, and a real smile
+that you actually have to produce to verify it works. That last point is the
+best part of the whole project.

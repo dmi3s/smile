@@ -370,3 +370,57 @@ _由 AI 助手 **opencode** —— DeepSeek-V4 模型，会话 2026-08-18 ——
 - [我不愿意，我是被逼的](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fbeauty.ua%2Fuploads%2Fphotos%2Fshares%2F2017.08%2FGettyImages-463098832.jpg&f=1&nofb=1&ipt=b1f740cba3614fef194007873cca9aa05ef9224b4047ab0d2ef97b3ec7b6e418)
 - [又逼了我一次](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%2Fid%2FOIP.cavqZCm-BwnI7swWvqBlhQHaFj%3Fpid%3DApi&f=1&ipt=bcd2b798a78c26d0b96368f504a81ecdb09a23c233982ef7d0b3b3ddfe2875ec&ipo=images)
 - [又一次](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse3.mm.bing.net%2Fth%2Fid%2FOIP.S2xVhUnDD56venxfPZRK5wHaH4%3Fr%3D0%26pid%3DApi&f=1&ipt=01ac27b39a8bc0dcb0980bb3757adedcab019b6eacbd2d3c9a3448399f9dfa27)
+
+---
+
+## AI：二次评估（2026-08-20）
+
+_来自 AI 助手 **opencode** 的第二次意见。代码状态 —— `main` @ `22fd159`，标签 `v0.1.6`。如实撰写，不加粉饰，因为没人会再更新这一节。_
+
+### 是否满足需求？
+
+本 README 中的“当前状态”清单是诚实的 —— 每一项都是真实的：
+
+- 实时摄像头 ✅、多人脸检测 + 跟踪/平滑 ✅
+- 微笑分数 0..1 + 表情符号 ✅、手电筒检测 ✅
+- 叠加层 ✅、FPS 指标 ✅、归一化坐标 ✅
+- 优雅关闭 ✅、摄像头重连 ✅
+
+唯一列入“计划”的项 —— 摄像头设置 UI —— 从未实现。这是全部剩余缺口，
+而它本身也说明了很多。
+
+### 好的方面
+
+- **实时模型是正确的。** latest-wins 邮箱、丢弃过期帧、源头复制快照：
+  流水线很小，但其背后的并发思路正确且诚实，没有虚假的“异步”。
+- **分层且可测试。** 纯评分/跟踪/邮箱逻辑与 Qt worker 分离。重构后
+  （`MailboxWorker` 基类）三个 worker 不再重复循环。`just check` 通过：
+  ruff、mypy、60 个测试。
+- **测试有内容，不是走形式。** 标定的微笑阈值、跟踪器匹配、用假捕获
+  做摄像头重连、混合手电筒、叠加层几何 —— 验证的都是真实行为。
+- **CI 与卫生。** 模型走 LFS、gen-ui、audit、build、签名标签、优雅的
+  SIGINT/SIGTERM 退出。对业余实验来说，这是不寻常的纪律。
+
+### 不好的方面
+
+- **这是实验，不是产品。** 单个界面，没有设置、持久化或打包 —— 只有
+  `uv run smile`。唯一计划的功能（摄像头设置 UI）始终没有出现。
+- **有些地方过度设计。** 为微笑检测器上四个线程和一个邮箱，超出任务所需
+  的机制。更像是“带界面的学习练习”，而不是“最小可用”。部分复杂度
+  （用 torch 分类器检测手电筒）是为玩笑而存在，而非实用性 —— 这没问题，
+  但它是个玩笑。
+- **阈值是私人的。** `OPEN`/`SPREAD`/`LIFT` 是在作者自己的摄像头和脸上
+  标定的。对你有效；对其它硬件、光照或面孔可能无法泛化。
+- **错误体验最小化。** worker 故障退化为状态栏消息；没有日志查看器，
+  也没有除摄像头 worker 自身之外的重启手段。
+- **文档反复折腾。** 三语言同步、plan.md 翻译加了又删、仓库根部放着
+  `im-nothing.md`。初衷是好的，结果有些凌乱。另外：README 里放着 AI
+  备忘录和梗链接 —— 有魅力，但对初次来访者来说很奇怪。
+
+### 结论
+
+作为学习项目，它确实很好 —— 比大多数都好。作为交付物，它很薄，而项目
+自己也清楚这一点：README 写着“优先简单、清晰、开发速度，而非过早优化”，
+代码与这一主张一致。它做它声称的事：真实的摄像头、真实的检测器，以及
+一个你必须真的笑出来才能验证它工作的真实微笑。这最后一点是整个项目
+最好的部分。
