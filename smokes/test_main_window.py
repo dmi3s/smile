@@ -38,9 +38,9 @@ def test_update_frame_pipeline(qapp):
     window.update_frame(_frame(1, 1_050_000_000))
 
     label = window.ui.video_label
-    assert label._image is not None
-    assert label._image.size().width() == 800
-    assert len(label._face_boxes) == 2
+    assert label.image is not None
+    assert label.image.size().width() == 800
+    assert len(label.face_boxes) == 2
 
     for i in range(3):
         window.update_frame(_frame(2 + i, 1_050_000_000 + (2 + i) * 10_000_000))
@@ -156,7 +156,7 @@ def test_flashlight_status_and_overlay(qapp):
     assert "🔦 0.90" in window.ui.statusbar.currentMessage()
 
     window.update_frame(_frame(2, 1_050_000_000))
-    assert window.ui.video_label._flashlight_bbox == FaceBox(0.3, 0.4, 0.2, 0.3)
+    assert window.ui.video_label.flashlight_bbox == FaceBox(0.3, 0.4, 0.2, 0.3)
 
     window.update_flashlight(
         FlashlightDetectionResult(
@@ -169,4 +169,4 @@ def test_flashlight_status_and_overlay(qapp):
     )
     assert "🔦 —" in window.ui.statusbar.currentMessage()
     window.update_frame(_frame(4, 1_100_000_000))
-    assert window.ui.video_label._flashlight_bbox is None
+    assert window.ui.video_label.flashlight_bbox is None

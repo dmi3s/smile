@@ -1,8 +1,11 @@
 import numpy as np
 
+from smile.recognition.detectors.face_detection import FaceBox
 from smile.recognition.detectors.flashlight_detection import (
+    BrightSpot,
     Category,
     detect_bright_spot,
+    hybrid_flashlight_result,
     is_flashlight,
 )
 
@@ -74,3 +77,26 @@ def test_is_flashlight_below_score_threshold():
 
 def test_is_flashlight_empty():
     assert is_flashlight(()) == (False, 0.0)
+
+
+def test_hybrid_detected_by_classifier_without_spot():
+    result = hybrid_flashlight_result(True, 0.8, None, frame_id=1)
+    assert result.detected is True
+    assert result.score == 0.8
+    assert result.bright_bbox is None
+
+
+def test_hybrid_detected_by_bright_spot_only():
+    spot = BrightSpot(bbox=FaceBox(0.3, 0.4, 0.2, 0.3), area_ratio=0.05, peak=0.9)
+    result = hybrid_flashlight_result(False, 0.0, spot, frame_id=2)
+    assert result.detected is True
+    assert result.score == 0.9
+    assert result.bright_bbox == spot.bbox
+    assert result.brightness == 0.9
+
+
+def test_hybrid_not_detected_when_nothing_found():
+    result = hybrid_flashlight_result(False, 0.0, None, frame_id=3)
+    assert result.detected is False
+    assert result.score == 0.0
+    assert result.bright_bbox is None

@@ -53,6 +53,34 @@ def is_flashlight(
     return False, 0.0
 
 
+def hybrid_flashlight_result(
+    classifier_detected: bool,
+    classifier_score: float,
+    spot: BrightSpot | None,
+    frame_id: int,
+) -> FlashlightDetectionResult:
+    """Combine the ImageNet classifier and the bright-spot heuristic.
+
+    The device counts when either the classifier sees a torch (works even
+    with the light off) or a bright lens is actually glowing. The score
+    comes from the classifier when it fired, otherwise from the lens
+    brightness.
+    """
+    detected = classifier_detected or spot is not None
+    score = (
+        classifier_score
+        if classifier_detected
+        else (spot.peak if spot is not None else 0.0)
+    )
+    return FlashlightDetectionResult(
+        detected=detected,
+        score=score,
+        bright_bbox=spot.bbox if spot is not None else None,
+        brightness=spot.peak if spot is not None else 0.0,
+        frame_id=frame_id,
+    )
+
+
 def detect_bright_spot(
     image: np.ndarray,
     threshold: int = BRIGHT_THRESHOLD,

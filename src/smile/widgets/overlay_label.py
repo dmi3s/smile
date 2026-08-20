@@ -23,6 +23,18 @@ class OverlayLabel(QLabel):
         self._prev_timestamp_ns: int = 0
         self._timestamp_ns: int = 0
 
+    @property
+    def image(self) -> QImage | None:
+        return self._image
+
+    @property
+    def face_boxes(self) -> tuple[DetectedFaceBox, ...]:
+        return self._face_boxes
+
+    @property
+    def flashlight_bbox(self) -> FaceBox | None:
+        return self._flashlight_bbox
+
     def set_frame(
         self,
         image: np.ndarray,
@@ -43,7 +55,7 @@ class OverlayLabel(QLabel):
         self._show_statistics = show_statistics
         self.update()
 
-    def _draw_rect(self) -> QRect:
+    def draw_rect(self) -> QRect:
         if self._image is None:
             return QRect()
         image_w, image_h = self._image.width(), self._image.height()
@@ -57,8 +69,8 @@ class OverlayLabel(QLabel):
         y = (widget_h - draw_h) // 2
         return QRect(x, y, draw_w, draw_h)
 
-    def _map_rect(self, rect: QRect) -> QRect:
-        draw_rect = self._draw_rect()
+    def map_rect(self, rect: QRect) -> QRect:
+        draw_rect = self.draw_rect()
         if self._image is None or draw_rect.isEmpty():
             return QRect()
         sx = draw_rect.width() / self._image.width()
@@ -78,7 +90,7 @@ class OverlayLabel(QLabel):
 
             if self._image is not None:
                 p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-                p.drawImage(self._draw_rect(), self._image)
+                p.drawImage(self.draw_rect(), self._image)
                 p.setRenderHint(QPainter.RenderHint.Antialiasing)
 
                 for fb in self._face_boxes:
@@ -89,7 +101,7 @@ class OverlayLabel(QLabel):
                     pen.setCapStyle(Qt.PenCapStyle.RoundCap)
                     pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
                     p.setPen(pen)
-                    p.drawRect(self._map_rect(rect))
+                    p.drawRect(self.map_rect(rect))
 
                 if self._flashlight_bbox is not None:
                     rect, _ = face_to_qrect_with_color(
@@ -104,7 +116,7 @@ class OverlayLabel(QLabel):
                     pen.setCapStyle(Qt.PenCapStyle.RoundCap)
                     pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
                     p.setPen(pen)
-                    p.drawRect(self._map_rect(rect))
+                    p.drawRect(self.map_rect(rect))
 
             if self._show_statistics and self._timestamp_ns > 0:
                 delta = self._timestamp_ns - self._prev_timestamp_ns

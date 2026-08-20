@@ -1,5 +1,4 @@
 import logging
-import traceback
 from dataclasses import replace
 from pathlib import Path
 
@@ -9,7 +8,7 @@ import numpy as np
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.tasks.python.components.containers.detections import DetectionResult
-from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
+from PySide6.QtCore import Signal, Slot
 
 from smile.camera.frame import Frame
 from smile.recognition.detectors.face_detection import (
@@ -18,79 +17,51 @@ from smile.recognition.detectors.face_detection import (
     FaceDetectionResult,
 )
 from smile.recognition.tracking.face_tracker import FaceTracker
-from smile.utils.latest_value_mailbox import LatestValueMailbox
+from smile.utils.mailbox_worker import MailboxWorker
 
 logger = logging.getLogger(__name__)
 
 
-class FaceDetectionWorker(QObject):
+class FaceDetectionWorker(MailboxWorker):
     """
     Worker that runs SMILE detection tasks
 
     Signals from a running worker thread.
         result
             object data returned from processing: FaceDetectionResult
-        progress
-            tuple (str, frame_id)
         error
             tuple (exctype, value, traceback.format_exc())
     """
 
     result = Signal(FaceDetectionResult)
-    progress = Signal(str, int)
-    error = Signal(type(BaseException), BaseException, str)  # красиво!
 
     def __init__(self, model_path: Path) -> None:
         super().__init__()
         self._model_path: Path = model_path
         self._detector: vision.FaceDetector | None = None
-        self._mailbox = LatestValueMailbox[Frame]()
         self._tracker = FaceTracker()
 
-        thread_name: str = QThread.currentThread().objectName()
-        logger.info(f'Created on thread "{thread_name}"')
         logger.info(f"Init with {model_path=}")
 
-    @Slot()
-    def wakeup(self):
-        thread_name: str = QThread.currentThread().objectName()
-        logger.info(f'Waking up on thread "{thread_name}"')
+    def _init_worker(self) -> None:
+        opts = python.BaseOptions(model_asset_path=str(self._model_path))
+        options = vision.FaceDetectorOptions(
+            base_options=opts,
+            min_detection_confidence=0.5,
+            running_mode=vision.RunningMode.VIDEO,
+        )
+        self._detector = vision.FaceDetector.create_from_options(options)
+        self._tracker.reset()
 
-        try:
-            opts = python.BaseOptions(model_asset_path=str(self._model_path))
-            options = vision.FaceDetectorOptions(
-                base_options=opts,
-                min_detection_confidence=0.5,
-                running_mode=vision.RunningMode.VIDEO,
-            )
-            self._detector = vision.FaceDetector.create_from_options(options)
-            self._mailbox.wakeup()
-            self._tracker.reset()
-        except Exception as e:
-            self.error.emit(type(e), e, traceback.format_exc())
-            logger.error(f"Init failed: {e}")
-            return
-
-        logger.info("Started")
-
-    def _cleanup(self):
-        assert not self._mailbox.busy
-        if self._detector:
+    def _cleanup(self) -> None:
+        super()._cleanup()
+        if self._detector is not None:
             self._detector.close()
             self._detector = None
 
-    @Slot()
-    def shutdown(self):
-        self._mailbox.shutdown()
-        self._cleanup()
-        logger.info("Stopped")
-
     @Slot(Frame)
     def new_frame(self, frame: Frame) -> None:
-        self._mailbox.new_data(frame)
-
-        if self._mailbox.try_start():
-            QTimer.singleShot(0, self._process_next)
+        self._enqueue(frame)
 
     # NOTE: In this version of MediaPipe Tasks API (0.10+), FaceDetector with
     # RunningMode.VIDEO returns bounding box coordinates in absolute pixels
@@ -126,50 +97,31 @@ class FaceDetectionWorker(QObject):
             frame_id=small_rgb.frame_id,
         )
 
-    @Slot()
-    def _process_next(self):
-        frame = self._mailbox.extract_data()
+    def _process(self, frame: Frame) -> None:
+        small_data = cv2.resize(
+            frame.image, dsize=(0, 0), fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA
+        )
 
-        assert frame is not None
+        small_data = np.ascontiguousarray(small_data[:, :, ::-1])
+        small_data.flags.writeable = False
 
-        try:
-            small_data = cv2.resize(
-                frame.image, dsize=(0, 0), fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA
-            )
+        small_image_rgb = mp.Image(image_format=mp.ImageFormat.SRGB, data=small_data)
 
-            small_data = np.ascontiguousarray(small_data[:, :, ::-1])
-            small_data.flags.writeable = False
+        assert self._detector
+        result = self._detector.detect_for_video(
+            small_image_rgb, frame.timestamp_ns // 1_000_000
+        )
 
-            small_image_rgb = mp.Image(
-                image_format=mp.ImageFormat.SRGB, data=small_data
-            )
+        result = FaceDetectionWorker._construct_recognition_result(
+            result,
+            1.0 / small_image_rgb.width,
+            1.0 / small_image_rgb.height,
+            Frame.create_share(
+                small_data,
+                frame.frame_id,
+                frame.timestamp_ns,
+            ),
+        )
 
-            assert self._detector
-            result = self._detector.detect_for_video(
-                small_image_rgb, frame.timestamp_ns // 1_000_000
-            )
-
-            result = FaceDetectionWorker._construct_recognition_result(
-                result,
-                1.0 / small_image_rgb.width,
-                1.0 / small_image_rgb.height,
-                Frame.create_share(
-                    small_data,
-                    frame.frame_id,
-                    frame.timestamp_ns,
-                ),
-            )
-
-            result = replace(result, faces=self._tracker.update(result.faces))
-
-        except BaseException as e:
-            exctype: type = type(e)
-            tb: str = traceback.format_exc()
-            self.error.emit(exctype, e, tb)
-            logger.error(f"Processing failed: {e}\n{tb}")
-        else:
-            self.result.emit(result)
-            self.progress.emit(QThread.currentThread().objectName(), frame.frame_id)
-        finally:
-            if self._mailbox.complete_and_should_continue():
-                QTimer.singleShot(0, self._process_next)
+        result = replace(result, faces=self._tracker.update(result.faces))
+        self.result.emit(result)

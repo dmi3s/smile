@@ -22,7 +22,7 @@ def test_draw_rect_math(qapp):
     label.resize(640, 480)
     label.set_frame(_image((448, 800, 3), 7), FACES, 1_000_000_000, True)
     # 800x448 -> fit 640x480: scale 0.8 -> 640x358, y-offset 61
-    assert label._draw_rect() == QRect(0, 61, 640, 358)
+    assert label.draw_rect() == QRect(0, 61, 640, 358)
 
 
 def test_map_rect_math(qapp):
@@ -30,7 +30,7 @@ def test_map_rect_math(qapp):
     label.resize(640, 480)
     label.set_frame(_image((448, 800, 3), 7), FACES, 1_000_000_000, True)
     # image px (0,0,400,224) scaled by 0.8, offset (0,61)
-    assert label._map_rect(QRect(0, 0, 400, 224)) == QRect(0, 61, 320, 179)
+    assert label.map_rect(QRect(0, 0, 400, 224)) == QRect(0, 61, 320, 179)
 
 
 def test_frame_lifetime(qapp):
@@ -38,13 +38,13 @@ def test_frame_lifetime(qapp):
     img = _image((448, 800, 3), 7)
     label.set_frame(img, FACES, 1_000_000_000, True)
     expected = QSize(800, 448)
-    assert label._image is not None
-    assert label._image.size() == expected
+    assert label.image is not None
+    assert label.image.size() == expected
 
     del img
     gc.collect()
 
-    assert label._image.size() == expected
+    assert label.image.size() == expected
 
 
 def test_render_produces_pixels(qapp):
@@ -62,5 +62,5 @@ def test_frame_replacement(qapp):
     label = OverlayLabel()
     label.set_frame(_image((448, 800, 3), 7), FACES, 1_000_000_000, True)
     label.set_frame(_image((224, 400, 3), 8), FACES, 2_000_000_000, True)
-    assert label._image is not None
-    assert label._image.size() == QSize(400, 224)
+    assert label.image is not None
+    assert label.image.size() == QSize(400, 224)

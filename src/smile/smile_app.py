@@ -111,7 +111,6 @@ class SmileApp(QApplication):
     def _setup_smile_worker(self):
         self._smile_worker.result.connect(self._window.update_smile_status)
         self._smile_worker.error.connect(self._window.smile_worker_error)
-        self._smile_worker.progress.connect(self._window.smile_worker_progress)
 
         self.stop_smile.connect(self._smile_worker.shutdown)
 
@@ -124,9 +123,6 @@ class SmileApp(QApplication):
     def _setup_flashlight_worker(self):
         self._flashlight_worker.result.connect(self._window.update_flashlight)
         self._flashlight_worker.error.connect(self._window.flashlight_worker_error)
-        self._flashlight_worker.progress.connect(
-            self._window.flashlight_worker_progress
-        )
 
         self.stop_flashlight.connect(self._flashlight_worker.shutdown)
 

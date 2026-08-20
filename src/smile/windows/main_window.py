@@ -62,9 +62,8 @@ class MainWindow(QMainWindow):
                 and key_event.modifiers() == Qt.KeyboardModifier.ControlModifier
             ):
                 QApplication.quit()
-            return True
-        else:
-            return super().eventFilter(obj, event)
+                return True
+        return super().eventFilter(obj, event)
 
     def _take_screenshot(self) -> None:
         try:
@@ -178,25 +177,14 @@ class MainWindow(QMainWindow):
     def smile_worker_error(
         self, ex_type: type[BaseException], ex: BaseException, traceback: str
     ) -> None:
-        self.ui.statusbar.showMessage(
-            "⚠ Smile Worker Error. Please check log for details."
-        )
+        logger.error("Smile worker error: %s: %s\n%s", ex_type.__name__, ex, traceback)
+        self.ui.statusbar.showMessage(f"⚠ Smile Worker Error: {ex_type.__name__}")
 
     @Slot(type(BaseException), BaseException, str)
     def flashlight_worker_error(
         self, ex_type: type[BaseException], ex: BaseException, traceback: str
     ) -> None:
-        self.ui.statusbar.showMessage(
-            "⚠ Flashlight Worker Error. Please check log for details."
+        logger.error(
+            "Flashlight worker error: %s: %s\n%s", ex_type.__name__, ex, traceback
         )
-
-    @Slot(str, int)
-    def flashlight_worker_progress(self, thread_name: str, frame_id: int) -> None:
-        pass
-
-    @Slot(str, int)
-    def smile_worker_progress(self, thread_name: str, smile_frame_id: int) -> None:
-        # ToDo: Display diff with camera.frame_id?.. Have to think.
-        # Deliberately does not touch the status bar: it would overwrite the
-        # smile score shown by update_smile_status.
-        pass
+        self.ui.statusbar.showMessage(f"⚠ Flashlight Worker Error: {ex_type.__name__}")
