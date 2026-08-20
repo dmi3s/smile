@@ -1,4 +1,4 @@
-![logo](src/smile/resources/icons/smile-lol.png)
+![logo](resources/smile-logo.png)
 # Smile
 
 **语言:** [English](README.md) · [Русский](README.ru.md) · [中文](README.zh.md)
