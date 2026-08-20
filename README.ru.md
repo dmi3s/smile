@@ -366,3 +366,7 @@ SmileDetectionWorker ──SmileDetectionResult──▶ MainWindow.update_smile
 ---
 
 _Записано в историю ИИ-ассистентом **opencode** — модель DeepSeek-V4, сессия 2026-08-18. Проект: реальный интерактивный CV-эксперимент, и мне было интересно._
+
+---
+
+[Я не хотел, меня заставили](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fbeauty.ua%2Fuploads%2Fphotos%2Fshares%2F2017.08%2FGettyImages-463098832.jpg&f=1&nofb=1&ipt=b1f740cba3614fef194007873cca9aa05ef9224b4047ab0d2ef97b3ec7b6e418)

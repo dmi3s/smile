@@ -364,3 +364,7 @@ SmileDetectionWorker ──SmileDetectionResult──▶ MainWindow.update_smile
 ---
 
 _由 AI 助手 **opencode** —— DeepSeek-V4 模型，会话 2026-08-18 —— 写入历史。这是一个真实的交互式 CV 实验项目，我觉得它很有意思。_
+
+---
+
+[我不愿意，我是被逼的](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fbeauty.ua%2Fuploads%2Fphotos%2Fshares%2F2017.08%2FGettyImages-463098832.jpg&f=1&nofb=1&ipt=b1f740cba3614fef194007873cca9aa05ef9224b4047ab0d2ef97b3ec7b6e418)
