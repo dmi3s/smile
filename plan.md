@@ -1,64 +1,67 @@
-# План: рефакторинг и фиксы
+# Plan: refactoring and fixes
 
-Список точечных исправлений по итогам ревизии кода. Каждый пункт — отдельная
-единица работы со своим критерием готовности.
+**Read this in:** [English](plan.md) · [Русский](plan.ru.md) · [中文](plan.zh.md)
 
-## 1. `eventFilter` не должен глотать все клавиши
+A list of point-by-point fixes from the code review. Each item is a separate
+unit of work with its own acceptance criterion.
 
-- **проблема**: `MainWindow.eventFilter` возвращает `True` для любого `KeyPress`
-  (`main_window.py:65`), так что любой будущий ввод (например, поле настройки
-  камеры) будет съеден фильтром;
-- **решение**: перехватывать только `Ctrl+Q`, остальные события — в базовую
-  обработку;
-- **критерий**: `[x]` — только `Ctrl+Q` завершает приложение, остальные клавиши
-  доходят до виджетов.
+## 1. `eventFilter` must not swallow all keys
 
-## 2. Вынести общий паттерн воркеров в базовый класс
+- **problem**: `MainWindow.eventFilter` returns `True` for every `KeyPress`
+  (`main_window.py:65`), so any future input (e.g. a camera-settings field)
+  would be eaten by the filter;
+- **solution**: intercept only `Ctrl+Q`, forward everything else to the base
+  handling;
+- **criterion**: `[x]` — only `Ctrl+Q` quits the app, other keys reach the
+  widgets.
 
-- **проблема**: три детекторных воркера дословно дублируют mailbox-механику
-  и цикл `_process_next` (try/except/emit/finally);
-- **решение**: базовый `MailboxWorker` в `utils/mailbox_worker.py` — `wakeup`,
-  `shutdown`, `_enqueue`, `_process_next`; подклассы реализуют `_init_worker`
-  и `_process`;
-- **критерий**: `[x]` — дублирование убрано, все воркеры наследуют базу.
+## 2. Extract the common worker pattern into a base class
 
-## 3. Гибридная детекция фонарика
+- **problem**: the three detection workers verbatim duplicate the mailbox
+  mechanics and the `_process_next` loop (try/except/emit/finally);
+- **solution**: base `MailboxWorker` in `utils/mailbox_worker.py` — `wakeup`,
+  `shutdown`, `_enqueue`, `_process_next`; subclasses implement `_init_worker`
+  and `_process`;
+- **criterion**: `[x]` — duplication removed, all workers inherit the base.
 
-- **проблема**: `detected` зависит только от классификатора, а яркое пятно
-  считается всегда, но рисуется лишь при `detected` — если классификатор молчит,
-  а линза светится, детекции нет;
-- **решение**: `detected = классификатор OR яркое пятно`; скор — из
-  классификатора, иначе яркость линзы;
-- **критерий**: `[x]` — светящаяся линза детектится и без подтверждения
-  классификатора.
+## 3. Hybrid flashlight detection
 
-## 4. Слоты ошибок логируют реальную причину
+- **problem**: `detected` depended only on the classifier, while the bright
+  spot was always computed but drawn only when `detected` — if the classifier
+  stayed silent but the lens was glowing, nothing was detected;
+- **solution**: `detected = classifier OR bright spot`; the score comes from
+  the classifier, otherwise from the lens brightness;
+- **criterion**: `[x]` — a glowing lens is detected even without classifier
+  confirmation.
 
-- **проблема**: `smile_worker_error`/`flashlight_worker_error` игнорируют
-  параметры (тип, значение, трейс) и показывают лишь общее сообщение;
-- **решение**: логировать исключение целиком и показывать краткую причину
-  в статусбаре;
-- **критерий**: `[x]` — в лог попадает трейс, в статусбар — причина.
+## 4. Error slots log the real cause
 
-## 5. Мёртвый код
+- **problem**: `smile_worker_error`/`flashlight_worker_error` ignored their
+  parameters (type, value, traceback) and only showed a generic message;
+- **solution**: log the full exception and show a short cause in the status
+  bar;
+- **criterion**: `[x]` — the traceback lands in the log, the cause in the
+  status bar.
 
-- **проблема**: no-op слоты `smile_worker_progress`/`flashlight_worker_progress`,
-  сигнал `progress` (подключён к пустышкам), поле `SmileFeatures.corner_rise`
-  не используется в скоре;
-- **решение**: удалить сигнал `progress` из воркеров, слоты и подключения,
-  поле `corner_rise`;
-- **критерий**: `[x]` — `ruff` не находит неиспользуемого кода, всё компилируется.
+## 5. Dead code
 
-## 6. Тесты
+- **problem**: no-op slots `smile_worker_progress`/`flashlight_worker_progress`,
+  the `progress` signal (connected to stubs), and the `SmileFeatures.corner_rise`
+  field was unused in scoring;
+- **solution**: remove the `progress` signal from the workers, the slots and
+  the connections, and the `corner_rise` field;
+- **criterion**: `[x]` — `ruff` finds no unused code, everything compiles.
 
-- **проблема**: утилиты `convert.py`/`lerp.py` без тестов; тесты заглядывают
-  в приватные поля (`label._image`, `label._face_boxes`, ...);
-- **решение**: тесты для `lerp` и `convert`; публичные свойства/методы
+## 6. Tests
+
+- **problem**: the `convert.py`/`lerp.py` utilities had no tests; tests peeked
+  into private fields (`label._image`, `label._face_boxes`, ...);
+- **solution**: tests for `lerp` and `convert`; public properties/methods on
   `OverlayLabel` (`image`, `face_boxes`, `flashlight_bbox`, `draw_rect`,
-  `map_rect`) вместо приватных;
-- **критерий**: `[x]` — `just check` зелёный, покрытие утилит добавлено.
+  `map_rect`) instead of private ones;
+- **criterion**: `[x]` — `just check` is green, utility coverage added.
 
-## Как проверить
+## How to verify
 
 - [x] `just check` (ruff + mypy + pytest)
-- [x] `uv run pytest smokes` — все тесты проходят
+- [x] `uv run pytest smokes` — all tests pass

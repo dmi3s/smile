@@ -170,7 +170,7 @@ uv run pytest smokes  # smoke tests
 
 ## Documentation
 
-Architecture breakdown with diagrams (input buffer, pipeline, classes, realtime loop) — [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). D2 sources and built SVGs live in `docs/`.
+Architecture breakdown with diagrams (input buffer, pipeline, classes, realtime loop) — [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ([Русский](docs/ARCHITECTURE.ru.md) · [中文](docs/ARCHITECTURE.zh.md)). D2 sources and built SVGs live in `docs/`.
 
 Building the PDF (Typst), from the `docs/` directory:
 

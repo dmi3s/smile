@@ -170,7 +170,7 @@ uv run pytest smokes  # smoke-тесты
 
 ## Документация
 
-Разбор архитектуры с диаграммами (буфер ввода, конвейер, классы, realtime-цикл) — [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). D2-исходники и собранные SVG — в `docs/`.
+Разбор архитектуры с диаграммами (буфер ввода, конвейер, классы, realtime-цикл) — [docs/ARCHITECTURE.md](docs/ARCHITECTURE.ru.md) ([English](docs/ARCHITECTURE.md) · [中文](docs/ARCHITECTURE.zh.md)). D2-исходники и собранные SVG — в `docs/`.
 
 Сборка PDF (Typst), каталог `docs/`:
 
@@ -230,7 +230,7 @@ okular build/README.pdf
                                  Qt Main Thread (жёлтая рамка)
 ```
 
-Подробные диаграммы (буфер ввода, конвейер, классы, realtime-цикл) — в [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Подробные диаграммы (буфер ввода, конвейер, классы, realtime-цикл) — в [docs/ARCHITECTURE.md](docs/ARCHITECTURE.ru.md) ([English](docs/ARCHITECTURE.md) · [中文](docs/ARCHITECTURE.zh.md)).
 
 Ключевые идеи:
 

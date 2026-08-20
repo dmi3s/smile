@@ -170,7 +170,7 @@ uv run pytest smokes  # 冒烟测试
 
 ## 文档
 
-架构详解与图表（输入缓冲区、流水线、类、实时循环）见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。D2 源文件与生成的 SVG 位于 `docs/`。
+架构详解与图表（输入缓冲区、流水线、类、实时循环）见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.zh.md)（[English](docs/ARCHITECTURE.md) · [Русский](docs/ARCHITECTURE.ru.md)）。D2 源文件与生成的 SVG 位于 `docs/`。
 
 构建 PDF（Typst），在 `docs/` 目录下：
 
